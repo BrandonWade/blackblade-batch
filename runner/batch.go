@@ -32,7 +32,7 @@ func (b *batchRunner) Run() {
 	// TODO: Run ~10 requests in parallel
 	for {
 		// Request cards from the API
-		res, err := b.cardService.GetCards(page)
+		res, err := b.cardService.ListCards(page)
 		if err != nil {
 			b.logger.Errorf("error downloading cards from page %d: %s", page, err.Error())
 			return
