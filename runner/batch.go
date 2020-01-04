@@ -29,7 +29,6 @@ func NewBatchRunner(logger *logrus.Logger, cardService services.CardService) Bat
 func (b *batchRunner) Run() {
 	page := 1
 
-	// TODO: Run ~10 requests in parallel
 	for {
 		// Request cards from the API
 		res, err := b.cardService.ListCards(page)
@@ -51,6 +50,6 @@ func (b *batchRunner) Run() {
 		}
 
 		page++
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(150 * time.Millisecond)
 	}
 }
