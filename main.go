@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	scryfall "github.com/BlueMonday/go-scryfall"
 	"github.com/BrandonWade/poseidon-batch/clients"

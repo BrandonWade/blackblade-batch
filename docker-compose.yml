@@ -1,0 +1,19 @@
+version: '3.5'
+
+services:
+    api:
+        build:
+            dockerfile: Dockerfile.dev
+            context: .
+        container_name: poseidon-batch
+        environment:
+            - DB_USERNAME=root
+            - DB_PASSWORD=root
+            - DB_DATABASE=blackblade
+            - DB_HOST=poseidon-db
+            - DB_PORT=3306
+
+networks:
+    default:
+        external:
+            name: poseidon_core
