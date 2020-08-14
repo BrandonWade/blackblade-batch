@@ -5,15 +5,15 @@ services:
         build:
             dockerfile: Dockerfile.dev
             context: .
-        container_name: poseidon-batch
+        container_name: blackblade-batch
         environment:
             - DB_USERNAME=root
             - DB_PASSWORD=root
             - DB_DATABASE=blackblade
-            - DB_HOST=poseidon-db
+            - DB_HOST=blackblade-db
             - DB_PORT=3306
 
 networks:
     default:
         external:
-            name: poseidon_core
+            name: blackblade_core

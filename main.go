@@ -6,10 +6,10 @@ import (
 	"os"
 
 	scryfall "github.com/BlueMonday/go-scryfall"
-	"github.com/BrandonWade/poseidon-batch/clients"
-	"github.com/BrandonWade/poseidon-batch/repositories"
-	"github.com/BrandonWade/poseidon-batch/runner"
-	"github.com/BrandonWade/poseidon-batch/services"
+	"github.com/BrandonWade/blackblade-batch/clients"
+	"github.com/BrandonWade/blackblade-batch/repositories"
+	"github.com/BrandonWade/blackblade-batch/runner"
+	"github.com/BrandonWade/blackblade-batch/services"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 
