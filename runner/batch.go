@@ -1,8 +1,9 @@
 package runner
 
 import (
-	"fmt"
+	"encoding/json"
 
+	scryfall "github.com/BlueMonday/go-scryfall"
 	"github.com/BrandonWade/blackblade-batch/models"
 	"github.com/BrandonWade/blackblade-batch/services"
 	"github.com/sirupsen/logrus"
@@ -47,13 +48,47 @@ func (b *batchRunner) Run() {
 		return
 	}
 
-	// TODO: Parse cards from resBody and upsert into DB
-	fmt.Printf("%#v", resBody)
+	dec := json.NewDecoder(resBody)
 
-	// Upsert the response into the database
-	// _, err = b.cardService.UpsertCards(res.Cards)
-	// if err != nil {
-	// 	b.logger.Errorf("error upserting cards for page %d: %s", page, err.Error())
-	// 	return
-	// }
+	// read open bracket
+	_, err = dec.Token()
+	if err != nil {
+		b.logger.Errorf("error parsing card data: %s", err.Error())
+		return
+	}
+
+	cards := []scryfall.Card{}
+	for dec.More() {
+		var card scryfall.Card
+		err = dec.Decode(&card)
+		if err != nil {
+			b.logger.Errorf("error decoding card: %s", err.Error())
+		}
+
+		cards = append(cards, card)
+		if len(cards) == 100 {
+			_, err = b.cardService.UpsertCards(cards)
+			if err != nil {
+				b.logger.Errorf("error upserting cards: %s", err.Error())
+				return
+			}
+
+			cards = []scryfall.Card{}
+		}
+	}
+
+	if len(cards) > 0 {
+		_, err = b.cardService.UpsertCards(cards)
+		if err != nil {
+			b.logger.Errorf("error upserting cards: %s", err.Error())
+			return
+		}
+	}
+
+	// read closing bracket
+	_, err = dec.Token()
+	if err != nil {
+		b.logger.Errorf("error parsing card data: %s", err.Error())
+		return
+	}
 }
