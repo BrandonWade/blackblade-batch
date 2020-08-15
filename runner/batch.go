@@ -42,7 +42,7 @@ func (b *batchRunner) Run() {
 
 	// TODO: Compare allCards.UpdatedAt against last run
 
-	resBody, err := b.cardService.DownloadAllCardData(allCards.URI)
+	resBody, err := b.cardService.DownloadAllCardData(allCards.DownloadURI)
 	if err != nil {
 		b.logger.Errorf("error downloading all cards data from api: %s", err.Error())
 		return
@@ -70,7 +70,6 @@ func (b *batchRunner) Run() {
 			_, err = b.cardService.UpsertCards(cards)
 			if err != nil {
 				b.logger.Errorf("error upserting cards: %s", err.Error())
-				return
 			}
 
 			cards = []scryfall.Card{}

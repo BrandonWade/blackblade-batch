@@ -14,7 +14,7 @@ import (
 // ScryfallClient interface for working with a scryfallClient.
 type ScryfallClient interface {
 	GetAllCards() (models.BulkData, error)
-	DownloadAllCardData(url string) (io.ReadCloser, error)
+	DownloadAllCardData(uri string) (io.ReadCloser, error)
 }
 
 type scryfallClient struct {
@@ -52,8 +52,8 @@ func (s *scryfallClient) GetAllCards() (models.BulkData, error) {
 }
 
 // DownloadAllCardData downloads the contents of the all_cards bulk data file from the Scryfall API.
-func (s *scryfallClient) DownloadAllCardData(url string) (io.ReadCloser, error) {
-	res, err := http.Get(url)
+func (s *scryfallClient) DownloadAllCardData(uri string) (io.ReadCloser, error) {
+	res, err := http.Get(uri)
 	if err != nil {
 		return nil, err
 	}
