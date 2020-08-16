@@ -24,9 +24,9 @@ type scryfallClient struct {
 }
 
 // NewScryfallClient create a new ScryfallClient instance.
-func NewScryfallClient(logger *logrus.Logger, client *scryfall.Client) ScryfallClient {
+func NewScryfallClient(baseUrl string, logger *logrus.Logger, client *scryfall.Client) ScryfallClient {
 	return &scryfallClient{
-		"https://api.scryfall.com",
+		baseUrl,
 		logger,
 		client,
 	}

@@ -17,12 +17,14 @@ import (
 )
 
 var (
-	db     *sqlx.DB
-	client *scryfall.Client
-	logger *logrus.Logger
+	baseURL string
+	db      *sqlx.DB
+	client  *scryfall.Client
+	logger  *logrus.Logger
 )
 
 func init() {
+	baseURL = os.Getenv("BASE_SCRYFALL_URL")
 	dbUsername := os.Getenv("DB_USERNAME")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbDatabase := os.Getenv("DB_DATABASE")
@@ -48,7 +50,7 @@ func init() {
 func main() {
 	defer db.Close()
 
-	scryfallClient := clients.NewScryfallClient(logger, client)
+	scryfallClient := clients.NewScryfallClient(baseURL, logger, client)
 	cardRepository := repositories.NewCardRepository(db)
 	cardService := services.NewCardService(logger, scryfallClient, cardRepository)
 	batchRunner := runner.NewBatchRunner(logger, cardService)

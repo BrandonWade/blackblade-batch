@@ -7,6 +7,7 @@ services:
             context: .
         container_name: blackblade-batch
         environment:
+            - BASE_SCRYFALL_URL=https://api.scryfall.com
             - DB_USERNAME=root
             - DB_PASSWORD=root
             - DB_DATABASE=blackblade

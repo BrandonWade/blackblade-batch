@@ -2,6 +2,7 @@ package runner
 
 import (
 	"encoding/json"
+	"time"
 
 	scryfall "github.com/BlueMonday/go-scryfall"
 	"github.com/BrandonWade/blackblade-batch/models"
@@ -29,6 +30,9 @@ func NewBatchRunner(logger *logrus.Logger, cardService services.CardService) Bat
 
 // Run download cards from the Scryfall API and upsert them into the database
 func (b *batchRunner) Run() {
+	b.logger.Println("Batch starting...")
+	start := time.Now()
+
 	allCards, err := b.cardService.GetAllCards()
 	if err != nil {
 		b.logger.Errorf("error fetching all cards from api: %s", err.Error())
@@ -90,4 +94,7 @@ func (b *batchRunner) Run() {
 		b.logger.Errorf("error parsing card data: %s", err.Error())
 		return
 	}
+
+	elapsed := time.Since(start)
+	b.logger.Printf("Batch completed in %s.\n", elapsed)
 }
