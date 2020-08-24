@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	scryfall "github.com/BlueMonday/go-scryfall"
 	"github.com/BrandonWade/blackblade-batch/models"
 	"github.com/BrandonWade/blackblade-batch/services"
 	"github.com/sirupsen/logrus"
@@ -53,6 +52,7 @@ func (b *batchRunner) Run() {
 	}
 
 	dec := json.NewDecoder(resBody)
+	dec.DisallowUnknownFields()
 
 	// read open bracket
 	_, err = dec.Token()
@@ -61,11 +61,12 @@ func (b *batchRunner) Run() {
 		return
 	}
 
-	cards := []scryfall.Card{}
+	cards := []models.ScryfallCard{}
 	for dec.More() {
-		var card scryfall.Card
+		var card models.ScryfallCard
 		err = dec.Decode(&card)
 		if err != nil {
+			// b.logger.Fatalf("error decoding card: %s", err.Error())
 			b.logger.Errorf("error decoding card: %s", err.Error())
 		}
 
@@ -76,7 +77,7 @@ func (b *batchRunner) Run() {
 				b.logger.Errorf("error upserting cards: %s", err.Error())
 			}
 
-			cards = []scryfall.Card{}
+			cards = []models.ScryfallCard{}
 		}
 	}
 
@@ -94,6 +95,8 @@ func (b *batchRunner) Run() {
 		b.logger.Errorf("error parsing card data: %s", err.Error())
 		return
 	}
+
+	// TODO: Populate card_sets_images table
 
 	elapsed := time.Since(start)
 	b.logger.Printf("Batch completed in %s.\n", elapsed)

@@ -3,13 +3,13 @@ package repositories
 import (
 	"database/sql"
 
-	scryfall "github.com/BlueMonday/go-scryfall"
+	"github.com/BrandonWade/blackblade-batch/models"
 	"github.com/jmoiron/sqlx"
 )
 
 // CardRepository interface for working with a cardRepository
 type CardRepository interface {
-	UpsertCards([]scryfall.Card) (int64, error)
+	UpsertCards(cards []models.ScryfallCard) (int64, error)
 }
 
 type cardRepository struct {
@@ -24,7 +24,7 @@ func NewCardRepository(db *sqlx.DB) CardRepository {
 }
 
 // UpsertCards upserts cards into the database
-func (c *cardRepository) UpsertCards(cards []scryfall.Card) (int64, error) {
+func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) (int64, error) {
 	total := int64(0)
 
 	tx, err := c.db.Begin()
@@ -52,8 +52,8 @@ func (c *cardRepository) UpsertCards(cards []scryfall.Card) (int64, error) {
 			return 0, err
 		}
 
-		if card.ImageURIs != nil {
-			err = c.upsertCardImageURIs(tx, cardID, card.ImageURIs)
+		if (card.ImageURIs != models.ScryfallImageURIs{}) {
+			err = c.upsertCardImageURIs(tx, cardID, &card.ImageURIs)
 			if err != nil {
 				return 0, err
 			}
@@ -74,42 +74,12 @@ func (c *cardRepository) UpsertCards(cards []scryfall.Card) (int64, error) {
 			return 0, err
 		}
 
-		// err = c.upsertCardGames(tx, cardID, card.Games)
-		// if err != nil {
-		// 	return 0, err
-		// }
-
-		// err = c.upsertCardArtistIDs(tx, cardID, card.ArtistIDs)
-		// if err != nil {
-		// 	return 0, err
-		// }
-
 		err = c.upsertCardFrameEffects(tx, cardID, card.FrameEffects)
 		if err != nil {
 			return 0, err
 		}
 
-		// err = c.upsertCardPromoTypes(tx, cardID, card.PromoTypes)
-		// if err != nil {
-		// 	return 0, err
-		// }
-
-		err = c.upsertCardPreview(tx, cardID, card.Preview)
-		if err != nil {
-			return 0, err
-		}
-
 		err = c.upsertCardPrices(tx, cardID, card.Prices)
-		if err != nil {
-			return 0, err
-		}
-
-		err = c.upsertCardRelatedURIs(tx, cardID, card.RelatedURIs)
-		if err != nil {
-			return 0, err
-		}
-
-		err = c.upsertCardPurchaseURIs(tx, cardID, card.PurchaseURIs)
 		if err != nil {
 			return 0, err
 		}
@@ -133,8 +103,7 @@ func (c *cardRepository) UpsertCards(cards []scryfall.Card) (int64, error) {
 	return total, nil
 }
 
-func (c *cardRepository) upsertCard(tx *sql.Tx, card scryfall.Card) (sql.Result, error) {
-	// TODO: Add missing fields
+func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (sql.Result, error) {
 	return tx.Exec(`INSERT INTO cards (
 		scryfall_id,
 		oracle_id,
@@ -241,7 +210,7 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card scryfall.Card) (sql.Result,
 		card.Loyalty,
 		card.Reserved,
 		card.Foil,
-		card.NonFoil,
+		card.Nonfoil,
 		card.Oversized,
 		card.Promo,
 		card.Reprint,
@@ -304,7 +273,7 @@ func (c *cardRepository) upsertCardMultiverseIDs(tx *sql.Tx, cardID int64, multi
 	return nil
 }
 
-func (c *cardRepository) upsertCardImageURIs(tx *sql.Tx, cardID int64, imageURIs *scryfall.ImageURIs) error {
+func (c *cardRepository) upsertCardImageURIs(tx *sql.Tx, cardID int64, imageURIs *models.ScryfallImageURIs) error {
 	upsertHelper := func(imageType, uri string) error {
 		_, err := tx.Exec(`INSERT INTO card_image_uris (
 			card_id,
@@ -360,7 +329,7 @@ func (c *cardRepository) upsertCardImageURIs(tx *sql.Tx, cardID int64, imageURIs
 	return nil
 }
 
-func (c *cardRepository) upsertCardColors(tx *sql.Tx, cardID int64, colors []scryfall.Color) error {
+func (c *cardRepository) upsertCardColors(tx *sql.Tx, cardID int64, colors []string) error {
 	for _, color := range colors {
 		_, err := tx.Exec(`INSERT INTO card_colors (
 			card_id,
@@ -383,7 +352,7 @@ func (c *cardRepository) upsertCardColors(tx *sql.Tx, cardID int64, colors []scr
 	return nil
 }
 
-func (c *cardRepository) upsertCardColorIdentities(tx *sql.Tx, cardID int64, colorIdentities []scryfall.Color) error {
+func (c *cardRepository) upsertCardColorIdentities(tx *sql.Tx, cardID int64, colorIdentities []string) error {
 	for _, colorIdentity := range colorIdentities {
 		_, err := tx.Exec(`INSERT INTO card_color_identities (
 			card_id,
@@ -406,8 +375,8 @@ func (c *cardRepository) upsertCardColorIdentities(tx *sql.Tx, cardID int64, col
 	return nil
 }
 
-func (c *cardRepository) upsertCardLegalities(tx *sql.Tx, cardID int64, legalities scryfall.Legalities) error {
-	upsertHelper := func(format, legality scryfall.Legality) error {
+func (c *cardRepository) upsertCardLegalities(tx *sql.Tx, cardID int64, legalities models.ScryfallLegalities) error {
+	upsertHelper := func(format, legality string) error {
 		_, err := tx.Exec(`INSERT INTO card_legalities (
 			card_id,
 			format,
@@ -440,10 +409,10 @@ func (c *cardRepository) upsertCardLegalities(tx *sql.Tx, cardID int64, legaliti
 		return err
 	}
 
-	// err = upsertHelper("historic", legalities.Historic)
-	// if err != nil {
-	// 	return err
-	// }
+	err = upsertHelper("historic", legalities.Historic)
+	if err != nil {
+		return err
+	}
 
 	err = upsertHelper("pioneer", legalities.Pioneer)
 	if err != nil {
@@ -465,10 +434,10 @@ func (c *cardRepository) upsertCardLegalities(tx *sql.Tx, cardID int64, legaliti
 		return err
 	}
 
-	// err = upsertHelper("vintage", legalities.Vintage)
-	// if err != nil {
-	// 	return err
-	// }
+	err = upsertHelper("vintage", legalities.Vintage)
+	if err != nil {
+		return err
+	}
 
 	err = upsertHelper("penny", legalities.Penny)
 	if err != nil {
@@ -480,20 +449,20 @@ func (c *cardRepository) upsertCardLegalities(tx *sql.Tx, cardID int64, legaliti
 		return err
 	}
 
-	// err = upsertHelper("brawl", legalities.Brawl)
-	// if err != nil {
-	// 	return err
-	// }
+	err = upsertHelper("brawl", legalities.Brawl)
+	if err != nil {
+		return err
+	}
 
 	err = upsertHelper("duel", legalities.Duel)
 	if err != nil {
 		return err
 	}
 
-	// err = upsertHelper("oldschool", legalities.OldSchool)
-	// if err != nil {
-	// 	return err
-	// }
+	err = upsertHelper("oldschool", legalities.Oldschool)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -544,7 +513,7 @@ func (c *cardRepository) upsertCardArtistIDs(tx *sql.Tx, cardID int64, artistIDs
 	return nil
 }
 
-func (c *cardRepository) upsertCardFrameEffects(tx *sql.Tx, cardID int64, frameEffects []scryfall.FrameEffect) error {
+func (c *cardRepository) upsertCardFrameEffects(tx *sql.Tx, cardID int64, frameEffects []string) error {
 	for _, frameEffect := range frameEffects {
 		_, err := tx.Exec(`INSERT INTO card_frame_effects (
 			card_id,
@@ -590,31 +559,7 @@ func (c *cardRepository) upsertCardPromoTypes(tx *sql.Tx, cardID int64, promoTyp
 	return nil
 }
 
-func (c *cardRepository) upsertCardPreview(tx *sql.Tx, cardID int64, preview scryfall.Preview) error {
-	_, err := tx.Exec(`INSERT INTO card_previews (
-		card_id,
-		source,
-		source_uri
-	) VALUES (
-		?,
-		?,
-		?
-	) ON DUPLICATE KEY UPDATE
-		source = ?,
-		source_uri = ?`,
-		cardID,
-		preview.Source,
-		preview.SourceURI,
-		// preview.PreviewedAt,
-		preview.Source,
-		preview.SourceURI,
-		// preview.PreviewedAt,
-	)
-
-	return err
-}
-
-func (c *cardRepository) upsertCardPrices(tx *sql.Tx, cardID int64, prices scryfall.Prices) error {
+func (c *cardRepository) upsertCardPrices(tx *sql.Tx, cardID int64, prices models.ScryfallPrices) error {
 	_, err := tx.Exec(`INSERT INTO card_prices (
 		card_id,
 		usd,
@@ -642,62 +587,6 @@ func (c *cardRepository) upsertCardPrices(tx *sql.Tx, cardID int64, prices scryf
 		prices.USDFoil,
 		prices.EUR,
 		prices.Tix,
-	)
-
-	return err
-}
-
-func (c *cardRepository) upsertCardRelatedURIs(tx *sql.Tx, cardID int64, relatedURIs scryfall.RelatedURIs) error {
-	_, err := tx.Exec(`INSERT INTO card_related_uris (
-		card_id,
-		tcgplayer_decks,
-		edhrec,
-		mtgtop8
-	) VALUES (
-		?,
-		?,
-		?,
-		?
-	) ON DUPLICATE KEY UPDATE
-		tcgplayer_decks = ?,
-		edhrec = ?,
-		mtgtop8 = ?
-	`,
-		cardID,
-		relatedURIs.TCGPlayerDecks,
-		relatedURIs.EDHREC,
-		relatedURIs.MTGTop8,
-		relatedURIs.TCGPlayerDecks,
-		relatedURIs.EDHREC,
-		relatedURIs.MTGTop8,
-	)
-
-	return err
-}
-
-func (c *cardRepository) upsertCardPurchaseURIs(tx *sql.Tx, cardID int64, purchaseURIs scryfall.PurchaseURIs) error {
-	_, err := tx.Exec(`INSERT INTO card_purchase_uris (
-		card_id,
-		tcgplayer,
-		cardmarket,
-		cardhoarder
-	) VALUES (
-		?,
-		?,
-		?,
-		?
-	) ON DUPLICATE KEY UPDATE
-		tcgplayer = ?,
-		cardmarket = ?,
-		cardhoarder = ?
-	`,
-		cardID,
-		purchaseURIs.TCGPlayer,
-		purchaseURIs.CardMarket,
-		purchaseURIs.CardHoarder,
-		purchaseURIs.TCGPlayer,
-		purchaseURIs.CardMarket,
-		purchaseURIs.CardHoarder,
 	)
 
 	return err

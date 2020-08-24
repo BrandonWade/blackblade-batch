@@ -3,7 +3,6 @@ package services
 import (
 	"io"
 
-	scryfall "github.com/BlueMonday/go-scryfall"
 	"github.com/BrandonWade/blackblade-batch/clients"
 	"github.com/BrandonWade/blackblade-batch/models"
 	"github.com/BrandonWade/blackblade-batch/repositories"
@@ -14,7 +13,7 @@ import (
 type CardService interface {
 	GetAllCards() (models.BulkData, error)
 	DownloadAllCardData(uri string) (io.ReadCloser, error)
-	UpsertCards(cards []scryfall.Card) (int64, error)
+	UpsertCards(cards []models.ScryfallCard) (int64, error)
 }
 
 type cardService struct {
@@ -42,6 +41,6 @@ func (c *cardService) DownloadAllCardData(uri string) (io.ReadCloser, error) {
 }
 
 // UpsertCards upserts cards into the database.
-func (c *cardService) UpsertCards(cards []scryfall.Card) (int64, error) {
+func (c *cardService) UpsertCards(cards []models.ScryfallCard) (int64, error) {
 	return c.cardRepo.UpsertCards(cards)
 }
