@@ -2,6 +2,8 @@ package runner
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/BrandonWade/blackblade-batch/models"
@@ -45,13 +47,22 @@ func (b *batchRunner) Run() {
 
 	// TODO: Compare allCards.UpdatedAt against last run
 
-	resBody, err := b.cardService.DownloadAllCardData(allCards.DownloadURI)
+	filepath := fmt.Sprintf("allcards-%v.json", int32(time.Now().Unix()))
+	err = b.cardService.DownloadAllCardData(allCards.DownloadURI, filepath)
 	if err != nil {
-		b.logger.Errorf("error downloading all cards data from api: %s", err.Error())
+		b.logger.Fatalf("error downloading all cards data from api: %s", err.Error())
 		return
 	}
 
-	dec := json.NewDecoder(resBody)
+	b.logger.Println("Processing all-cards bulk data file...")
+
+	file, err := os.Open(filepath)
+	if err != nil {
+		b.logger.Fatalf("error opening all cards data file: %s", err.Error())
+		return
+	}
+
+	dec := json.NewDecoder(file)
 	dec.DisallowUnknownFields()
 
 	// read open bracket
@@ -66,11 +77,13 @@ func (b *batchRunner) Run() {
 		var card models.ScryfallCard
 		err = dec.Decode(&card)
 		if err != nil {
-			// b.logger.Fatalf("error decoding card: %s", err.Error())
 			b.logger.Errorf("error decoding card: %s", err.Error())
 		}
 
-		cards = append(cards, card)
+		if card.Lang == "en" {
+			cards = append(cards, card)
+		}
+
 		if len(cards) == 100 {
 			_, err = b.cardService.UpsertCards(cards)
 			if err != nil {
@@ -99,5 +112,5 @@ func (b *batchRunner) Run() {
 	// TODO: Populate card_sets_images table
 
 	elapsed := time.Since(start)
-	b.logger.Printf("Batch completed in %s.\n", elapsed)
+	b.logger.Printf("Batch completed in %s.", elapsed)
 }

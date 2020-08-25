@@ -52,28 +52,6 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) (int64, error)
 			return 0, err
 		}
 
-		if (card.ImageURIs != models.ScryfallImageURIs{}) {
-			err = c.upsertCardImageURIs(tx, cardID, &card.ImageURIs)
-			if err != nil {
-				return 0, err
-			}
-		}
-
-		err = c.upsertCardColors(tx, cardID, card.Colors)
-		if err != nil {
-			return 0, err
-		}
-
-		err = c.upsertCardColorIdentities(tx, cardID, card.ColorIdentity)
-		if err != nil {
-			return 0, err
-		}
-
-		err = c.upsertCardLegalities(tx, cardID, card.Legalities)
-		if err != nil {
-			return 0, err
-		}
-
 		err = c.upsertCardFrameEffects(tx, cardID, card.FrameEffects)
 		if err != nil {
 			return 0, err
@@ -82,6 +60,24 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) (int64, error)
 		err = c.upsertCardPrices(tx, cardID, card.Prices)
 		if err != nil {
 			return 0, err
+		}
+
+		cardFaces := c.getCardFaces(card)
+		for _, cardFace := range cardFaces {
+			cardFaceID, err := c.upsertCardFace(tx, cardFace)
+			if err != nil {
+				return 0, err
+			}
+
+			err = c.upsertCardFaceColors(tx, cardFaceID, cardFace.Colors)
+			if err != nil {
+				return 0, err
+			}
+
+			err = c.upsertCardFaceColorIndicators(tx, cardFaceID, cardFace.ColorIndicator)
+			if err != nil {
+				return 0, err
+			}
 		}
 
 		count, err := result.RowsAffected()
@@ -107,40 +103,27 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (sql.R
 	return tx.Exec(`INSERT INTO cards (
 		scryfall_id,
 		oracle_id,
-		name,
-		lang,
-		uri,
-		scryfall_uri,
+		tcgplayer_id,
+		card_back_id,`+
+		"`set`,"+
+		`set_name,
+		rarity,
 		layout,
-		has_highres_image,
-		mana_cost,
-		cmc,
-		type_line,
-		oracle_text,
-		power,
-		toughness,
-		loyalty,
-		is_reserved,
+		border_color,
+		frame,
+		released_at,
 		has_foil,
 		has_nonfoil,
 		is_oversized,
-		is_promo,
-		is_reprint,`+
-		"`set`,"+
-		`set_name,
-		set_uri,
-		set_search_uri,
-		scryfall_set_uri,
+		is_reserved,
+		is_booster,
+		is_digital_only,
+		is_full_art,
+		is_textless,
+		is_reprint,
+		has_highres_image,
 		rulings_uri,
-		prints_search_uri,
-		collector_number,
-		is_digital,
-		rarity,
-		artist,
-		illustration_id,
-		border_color,
-		frame,
-		is_full_art
+		scryfall_uri
 	) VALUES (
 		?,
 		?,
@@ -164,93 +147,36 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (sql.R
 		?,
 		?,
 		?,
-		?,
-		?,
-		?,
-		?,
-		?,
-		?,
-		?,
-		?,
-		?,
-		?,
-		?,
-		?,
-		?,
 		?
-	) ON DUPLICATE KEY UPDATE
-		name = ?,
-		uri = ?,
-		scryfall_uri = ?,
-		mana_cost = ?,
-		cmc = ?,
-		oracle_text = ?,
-		set_uri = ?,
-		set_search_uri = ?,
-		scryfall_set_uri = ?,
-		rulings_uri = ?,
-		prints_search_uri = ?,
-		is_digital = ?
-	`,
+	)`,
 		card.ID,
 		card.OracleID,
-		card.Name,
-		card.Lang,
-		// card.ReleasedAt,
-		card.URI,
-		card.ScryfallURI,
+		card.TCGPlayerID,
+		card.CardBackID,
+		card.Set,
+		card.SetName,
+		card.Rarity,
 		card.Layout,
-		card.HighresImage,
-		card.ManaCost,
-		card.CMC,
-		card.TypeLine,
-		card.OracleText,
-		card.Power,
-		card.Toughness,
-		card.Loyalty,
-		card.Reserved,
+		card.BorderColor,
+		card.Frame,
+		card.ReleasedAt,
 		card.Foil,
 		card.Nonfoil,
 		card.Oversized,
-		card.Promo,
-		card.Reprint,
-		// card.Variation,
-		card.Set,
-		card.SetName,
-		// card.SetType,
-		card.SetURI,
-		card.SetSearchURI,
-		card.ScryfallSetURI,
-		card.RulingsURI,
-		card.PrintsSearchURI,
-		card.CollectorNumber,
+		card.Reserved,
+		card.Booster,
 		card.Digital,
-		card.Rarity,
-		// card.CardBackID,
-		card.Artist,
-		card.IllustrationID,
-		card.BorderColor,
-		card.Frame,
 		card.FullArt,
-		// card.Textless,
-		// card.Booster,
-		// card.StorySpotlight,
-		card.Name,
-		card.URI,
-		card.ScryfallURI,
-		card.ManaCost,
-		card.CMC,
-		card.OracleText,
-		card.SetURI,
-		card.SetSearchURI,
-		card.ScryfallSetURI,
+		card.Textless,
+		card.Reprint,
+		card.HighresImage,
 		card.RulingsURI,
-		card.PrintsSearchURI,
-		card.Digital,
+		card.ScryfallURI,
 	)
 }
 
 func (c *cardRepository) upsertCardMultiverseIDs(tx *sql.Tx, cardID int64, multiverseIDs []int) error {
+	// TODO: Optimize
 	for _, multiverseID := range multiverseIDs {
 		_, err := tx.Exec(`INSERT INTO card_multiverse_ids (
 			card_id,
@@ -273,247 +199,8 @@ func (c *cardRepository) upsertCardMultiverseIDs(tx *sql.Tx, cardID int64, multi
 	return nil
 }
 
-func (c *cardRepository) upsertCardImageURIs(tx *sql.Tx, cardID int64, imageURIs *models.ScryfallImageURIs) error {
-	upsertHelper := func(imageType, uri string) error {
-		_, err := tx.Exec(`INSERT INTO card_image_uris (
-			card_id,
-			image_type,
-			uri
-		) VALUES (
-			?,
-			?,
-			?
-		) ON DUPLICATE KEY UPDATE
-			image_type = ?,
-			uri = ?`,
-			cardID,
-			imageType,
-			uri,
-			imageType,
-			uri,
-		)
-
-		return err
-	}
-
-	err := upsertHelper("png", imageURIs.PNG)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("border_crop", imageURIs.BorderCrop)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("art_crop", imageURIs.ArtCrop)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("large", imageURIs.Large)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("normal", imageURIs.Normal)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("small", imageURIs.Small)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *cardRepository) upsertCardColors(tx *sql.Tx, cardID int64, colors []string) error {
-	for _, color := range colors {
-		_, err := tx.Exec(`INSERT INTO card_colors (
-			card_id,
-			color
-		) VALUES (
-			?,
-			?
-		) ON DUPLICATE KEY UPDATE
-			color = ?
-		`,
-			cardID,
-			color,
-			color,
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *cardRepository) upsertCardColorIdentities(tx *sql.Tx, cardID int64, colorIdentities []string) error {
-	for _, colorIdentity := range colorIdentities {
-		_, err := tx.Exec(`INSERT INTO card_color_identities (
-			card_id,
-			color
-		) VALUES (
-			?,
-			?
-		) ON DUPLICATE KEY UPDATE
-			color = ?
-		`,
-			cardID,
-			colorIdentity,
-			colorIdentity,
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *cardRepository) upsertCardLegalities(tx *sql.Tx, cardID int64, legalities models.ScryfallLegalities) error {
-	upsertHelper := func(format, legality string) error {
-		_, err := tx.Exec(`INSERT INTO card_legalities (
-			card_id,
-			format,
-			legality
-		) VALUES (
-			?,
-			?,
-			?
-		) ON DUPLICATE KEY UPDATE
-			format = ?,
-			legality = ?
-		`,
-			cardID,
-			format,
-			legality,
-			format,
-			legality,
-		)
-
-		return err
-	}
-
-	err := upsertHelper("standard", legalities.Standard)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("future", legalities.Future)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("historic", legalities.Historic)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("pioneer", legalities.Pioneer)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("modern", legalities.Modern)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("legacy", legalities.Legacy)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("pauper", legalities.Pauper)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("vintage", legalities.Vintage)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("penny", legalities.Penny)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("commander", legalities.Commander)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("brawl", legalities.Brawl)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("duel", legalities.Duel)
-	if err != nil {
-		return err
-	}
-
-	err = upsertHelper("oldschool", legalities.Oldschool)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *cardRepository) upsertCardGames(tx *sql.Tx, cardID int64, games []string) error {
-	for _, game := range games {
-		_, err := tx.Exec(`INSERT INTO card_games (
-			card_id,
-			game
-		) VALUES (
-			?,
-			?
-		) ON DUPLICATE KEY UPDATE
-			game = ?
-		`,
-			cardID,
-			game,
-			game,
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *cardRepository) upsertCardArtistIDs(tx *sql.Tx, cardID int64, artistIDs []string) error {
-	for _, artistID := range artistIDs {
-		_, err := tx.Exec(`INSERT INTO card_artist_ids (
-			card_id,
-			artist_id
-		) VALUES (
-			?,
-			?
-		) ON DUPLICATE KEY UPDATE
-			artist_id = ?
-		`,
-			cardID,
-			artistID,
-			artistID,
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (c *cardRepository) upsertCardFrameEffects(tx *sql.Tx, cardID int64, frameEffects []string) error {
+	// TODO: Optimize
 	for _, frameEffect := range frameEffects {
 		_, err := tx.Exec(`INSERT INTO card_frame_effects (
 			card_id,
@@ -527,29 +214,6 @@ func (c *cardRepository) upsertCardFrameEffects(tx *sql.Tx, cardID int64, frameE
 			cardID,
 			frameEffect,
 			frameEffect,
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *cardRepository) upsertCardPromoTypes(tx *sql.Tx, cardID int64, promoTypes []string) error {
-	for _, promoType := range promoTypes {
-		_, err := tx.Exec(`INSERT INTO card_promo_types (
-			card_id,
-			promo_type
-		) VALUES (
-			?,
-			?
-		) ON DUPLICATE KEY UPDATE
-			promo_type = ?
-		`,
-			cardID,
-			promoType,
-			promoType,
 		)
 		if err != nil {
 			return err
@@ -590,4 +254,64 @@ func (c *cardRepository) upsertCardPrices(tx *sql.Tx, cardID int64, prices model
 	)
 
 	return err
+}
+
+func (c *cardRepository) getCardFaces(card models.ScryfallCard) []models.ScryfallCardFace {
+	// TODO: Get card faces (use either card.CardFaces if it exists, or build it from various card fields)
+	return []models.ScryfallCardFace{}
+}
+
+func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardFace models.ScryfallCardFace) (int64, error) {
+	// TODO: Implement
+	_, err := tx.Exec(``)
+
+	return 0, err
+}
+
+func (c *cardRepository) upsertCardFaceColors(tx *sql.Tx, cardFaceID int64, colors []string) error {
+	// TODO: Optimize
+	for _, color := range colors {
+		_, err := tx.Exec(`INSERT INTO card_face_colors (
+			card_face_id,
+			color
+		) VALUES (
+			?,
+			?
+		) ON DUPLICATE KEY UPDATE
+			color = ?
+		`,
+			cardFaceID,
+			color,
+			color,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *cardRepository) upsertCardFaceColorIndicators(tx *sql.Tx, cardFaceID int64, colorIndicators []string) error {
+	// TODO: Optimize
+	for _, colorIndicator := range colorIndicators {
+		_, err := tx.Exec(`INSERT INTO card_face_color_indicators (
+			card_face_id,
+			color_indicator
+		) VALUES (
+			?,
+			?
+		) ON DUPLICATE KEY UPDATE
+			color_indicator = ?
+		`,
+			cardFaceID,
+			colorIndicator,
+			colorIndicator,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

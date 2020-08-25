@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	scryfall "github.com/BlueMonday/go-scryfall"
 	"github.com/BrandonWade/blackblade-batch/models"
@@ -14,7 +15,7 @@ import (
 // ScryfallClient interface for working with a scryfallClient.
 type ScryfallClient interface {
 	GetAllCards() (models.BulkData, error)
-	DownloadAllCardData(uri string) (io.ReadCloser, error)
+	DownloadAllCardData(uri, filepath string) error
 }
 
 type scryfallClient struct {
@@ -24,9 +25,9 @@ type scryfallClient struct {
 }
 
 // NewScryfallClient create a new ScryfallClient instance.
-func NewScryfallClient(baseUrl string, logger *logrus.Logger, client *scryfall.Client) ScryfallClient {
+func NewScryfallClient(baseURL string, logger *logrus.Logger, client *scryfall.Client) ScryfallClient {
 	return &scryfallClient{
-		baseUrl,
+		baseURL,
 		logger,
 		client,
 	}
@@ -52,11 +53,25 @@ func (s *scryfallClient) GetAllCards() (models.BulkData, error) {
 }
 
 // DownloadAllCardData downloads the contents of the all_cards bulk data file from the Scryfall API.
-func (s *scryfallClient) DownloadAllCardData(uri string) (io.ReadCloser, error) {
+func (s *scryfallClient) DownloadAllCardData(uri, filepath string) error {
 	res, err := http.Get(uri)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	defer res.Body.Close()
+
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, res.Body)
+	if err != nil {
+		return err
 	}
 
-	return res.Body, nil
+	s.logger.Println("Successfully downloaded all-cards bulk data file")
+
+	return nil
 }

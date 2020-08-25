@@ -1,8 +1,6 @@
 package services
 
 import (
-	"io"
-
 	"github.com/BrandonWade/blackblade-batch/clients"
 	"github.com/BrandonWade/blackblade-batch/models"
 	"github.com/BrandonWade/blackblade-batch/repositories"
@@ -12,7 +10,7 @@ import (
 // CardService interface for working with a cardService
 type CardService interface {
 	GetAllCards() (models.BulkData, error)
-	DownloadAllCardData(uri string) (io.ReadCloser, error)
+	DownloadAllCardData(uri, filepath string) error
 	UpsertCards(cards []models.ScryfallCard) (int64, error)
 }
 
@@ -36,8 +34,8 @@ func (c *cardService) GetAllCards() (models.BulkData, error) {
 	return c.scryfallClient.GetAllCards()
 }
 
-func (c *cardService) DownloadAllCardData(uri string) (io.ReadCloser, error) {
-	return c.scryfallClient.DownloadAllCardData(uri)
+func (c *cardService) DownloadAllCardData(uri, filepath string) error {
+	return c.scryfallClient.DownloadAllCardData(uri, filepath)
 }
 
 // UpsertCards upserts cards into the database.
