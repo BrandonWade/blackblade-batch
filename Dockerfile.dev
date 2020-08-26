@@ -1,6 +1,9 @@
 FROM golang:1.13
 WORKDIR /app
 
+# TODO: Temporary work around since scryfall bulk-data API is broken
+COPY all-cards-20200823211847.json .
+
 COPY go.mod .
 COPY go.sum .
 RUN go mod download

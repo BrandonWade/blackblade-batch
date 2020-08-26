@@ -2,7 +2,6 @@ package runner
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"time"
 
@@ -34,25 +33,28 @@ func (b *batchRunner) Run() {
 	b.logger.Println("Batch starting...")
 	start := time.Now()
 
-	allCards, err := b.cardService.GetAllCards()
-	if err != nil {
-		b.logger.Errorf("error fetching all cards from api: %s", err.Error())
-		return
-	}
+	// TODO: Scryfall bulk data file is broken today...
+	// allCards, err := b.cardService.GetAllCards()
+	// if err != nil {
+	// 	b.logger.Errorf("error fetching all cards from api: %s", err.Error())
+	// 	return
+	// }
 
-	if (allCards == models.BulkData{}) {
-		b.logger.Errorf("all cards not found")
-		return
-	}
+	// if (allCards == models.BulkData{}) {
+	// 	b.logger.Errorf("all cards not found")
+	// 	return
+	// }
 
-	// TODO: Compare allCards.UpdatedAt against last run
+	// // TODO: Compare allCards.UpdatedAt against last run
 
-	filepath := fmt.Sprintf("allcards-%v.json", int32(time.Now().Unix()))
-	err = b.cardService.DownloadAllCardData(allCards.DownloadURI, filepath)
-	if err != nil {
-		b.logger.Fatalf("error downloading all cards data from api: %s", err.Error())
-		return
-	}
+	// filepath := fmt.Sprintf("allcards-%v.json", int32(time.Now().Unix()))
+	// err = b.cardService.DownloadAllCardData(allCards.DownloadURI, filepath)
+	// if err != nil {
+	// 	b.logger.Fatalf("error downloading all cards data from api: %s", err.Error())
+	// 	return
+	// }
+
+	filepath := "all-cards-20200823211847.json"
 
 	b.logger.Println("Processing all-cards bulk data file...")
 
@@ -80,12 +82,12 @@ func (b *batchRunner) Run() {
 			b.logger.Errorf("error decoding card: %s", err.Error())
 		}
 
-		if card.Lang == "en" {
+		if card.Lang == "en" && card.TypeLine != "Vanguard" {
 			cards = append(cards, card)
 		}
 
 		if len(cards) == 100 {
-			_, err = b.cardService.UpsertCards(cards)
+			err = b.cardService.UpsertCards(cards)
 			if err != nil {
 				b.logger.Errorf("error upserting cards: %s", err.Error())
 			}
@@ -95,7 +97,7 @@ func (b *batchRunner) Run() {
 	}
 
 	if len(cards) > 0 {
-		_, err = b.cardService.UpsertCards(cards)
+		err = b.cardService.UpsertCards(cards)
 		if err != nil {
 			b.logger.Errorf("error upserting cards: %s", err.Error())
 			return

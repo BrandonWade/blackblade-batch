@@ -71,7 +71,7 @@ func (s *scryfallClient) DownloadAllCardData(uri, filepath string) error {
 		return err
 	}
 
-	s.logger.Println("Successfully downloaded all-cards bulk data file")
+	s.logger.Printf("Successfully downloaded all-cards bulk data file %s", filepath)
 
 	return nil
 }

@@ -9,7 +9,7 @@ import (
 
 // CardRepository interface for working with a cardRepository
 type CardRepository interface {
-	UpsertCards(cards []models.ScryfallCard) (int64, error)
+	UpsertCards(cards []models.ScryfallCard) error
 }
 
 type cardRepository struct {
@@ -24,23 +24,16 @@ func NewCardRepository(db *sqlx.DB) CardRepository {
 }
 
 // UpsertCards upserts cards into the database
-func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) (int64, error) {
-	total := int64(0)
-
+func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 	tx, err := c.db.Begin()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	for _, card := range cards {
-		result, err := c.upsertCard(tx, card)
+		cardID, err := c.upsertCard(tx, card)
 		if err != nil {
-			return 0, err
-		}
-
-		cardID, err := result.LastInsertId()
-		if err != nil {
-			return 0, err
+			return err
 		}
 
 		if cardID == 0 {
@@ -49,58 +42,48 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) (int64, error)
 
 		err = c.upsertCardMultiverseIDs(tx, cardID, card.MultiverseIDs)
 		if err != nil {
-			return 0, err
+			return err
 		}
 
 		err = c.upsertCardFrameEffects(tx, cardID, card.FrameEffects)
 		if err != nil {
-			return 0, err
+			return err
 		}
 
 		err = c.upsertCardPrices(tx, cardID, card.Prices)
 		if err != nil {
-			return 0, err
+			return err
 		}
 
 		cardFaces := c.getCardFaces(card)
 		for _, cardFace := range cardFaces {
-			cardFaceID, err := c.upsertCardFace(tx, cardFace)
+			cardFaceID, err := c.upsertCardFace(tx, cardID, cardFace)
 			if err != nil {
-				return 0, err
+				return err
 			}
 
 			err = c.upsertCardFaceColors(tx, cardFaceID, cardFace.Colors)
 			if err != nil {
-				return 0, err
+				return err
 			}
 
 			err = c.upsertCardFaceColorIndicators(tx, cardFaceID, cardFace.ColorIndicator)
 			if err != nil {
-				return 0, err
+				return err
 			}
-		}
-
-		count, err := result.RowsAffected()
-		if err != nil {
-			return 0, err
-		}
-
-		// MySQL returns 1 row affected for an insert, and 2 for an update
-		if count > 0 {
-			total++
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return total, nil
+	return nil
 }
 
-func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (sql.Result, error) {
-	return tx.Exec(`INSERT INTO cards (
+func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64, error) {
+	result, err := tx.Exec(`INSERT INTO cards (
 		scryfall_id,
 		oracle_id,
 		tcgplayer_id,
@@ -173,10 +156,19 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (sql.R
 		card.RulingsURI,
 		card.ScryfallURI,
 	)
+	if err != nil {
+		return 0, err
+	}
+
+	cardID, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return cardID, nil
 }
 
 func (c *cardRepository) upsertCardMultiverseIDs(tx *sql.Tx, cardID int64, multiverseIDs []int) error {
-	// TODO: Optimize
 	for _, multiverseID := range multiverseIDs {
 		_, err := tx.Exec(`INSERT INTO card_multiverse_ids (
 			card_id,
@@ -200,7 +192,6 @@ func (c *cardRepository) upsertCardMultiverseIDs(tx *sql.Tx, cardID int64, multi
 }
 
 func (c *cardRepository) upsertCardFrameEffects(tx *sql.Tx, cardID int64, frameEffects []string) error {
-	// TODO: Optimize
 	for _, frameEffect := range frameEffects {
 		_, err := tx.Exec(`INSERT INTO card_frame_effects (
 			card_id,
@@ -257,19 +248,113 @@ func (c *cardRepository) upsertCardPrices(tx *sql.Tx, cardID int64, prices model
 }
 
 func (c *cardRepository) getCardFaces(card models.ScryfallCard) []models.ScryfallCardFace {
-	// TODO: Get card faces (use either card.CardFaces if it exists, or build it from various card fields)
-	return []models.ScryfallCardFace{}
+	if len(card.CardFaces) > 0 {
+		return card.CardFaces
+	}
+
+	cardFace := models.ScryfallCardFace{
+		Artist:          card.Artist,
+		ColorIndicator:  card.ColorIndicator,
+		Colors:          card.Colors,
+		FlavorText:      card.FlavorText,
+		IllustrationID:  card.IllustrationID,
+		ImageURIs:       card.ImageURIs,
+		Loyalty:         card.Loyalty,
+		ManaCost:        card.ManaCost,
+		Name:            card.Name,
+		OracleText:      card.OracleText,
+		Power:           card.Power,
+		PrintedName:     card.PrintedName,
+		PrintedText:     card.PrintedText,
+		PrintedTypeLine: card.PrintedTypeLine,
+		Toughness:       card.Toughness,
+		TypeLine:        card.TypeLine,
+		Watermark:       card.Watermark,
+	}
+
+	return []models.ScryfallCardFace{
+		cardFace,
+	}
 }
 
-func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardFace models.ScryfallCardFace) (int64, error) {
-	// TODO: Implement
-	_, err := tx.Exec(``)
+func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, cardFace models.ScryfallCardFace) (int64, error) {
+	result, err := tx.Exec(`INSERT INTO card_faces (
+		card_id,
+		artist,
+		flavor_text,
+		illustration_id,
+		image_small,
+		image_normal,
+		image_large,
+		image_png,
+		image_art_crop,
+		image_border_crop,
+		mana_cost,
+		name,
+		reverse_name,
+		oracle_text,
+		reverse_oracle_text,
+		power,
+		toughness,
+		loyalty,
+		type_line,
+		watermark
+	) VALUES (
+		?,
+		?,
+		?,
+		?,
+		?,
+		?,
+		?,
+		?,
+		?,
+		?,
+		?,
+		?,
+		REVERSE(?),
+		?,
+		REVERSE(?),
+		?,
+		?,
+		?,
+		?,
+		?
+	)`,
+		cardID,
+		cardFace.Artist,
+		cardFace.FlavorText,
+		cardFace.IllustrationID,
+		cardFace.ImageURIs.Small,
+		cardFace.ImageURIs.Normal,
+		cardFace.ImageURIs.Large,
+		cardFace.ImageURIs.PNG,
+		cardFace.ImageURIs.ArtCrop,
+		cardFace.ImageURIs.BorderCrop,
+		cardFace.ManaCost,
+		cardFace.Name,
+		cardFace.Name,
+		cardFace.OracleText,
+		cardFace.OracleText,
+		cardFace.Power,
+		cardFace.Toughness,
+		cardFace.Loyalty,
+		cardFace.TypeLine,
+		cardFace.Watermark,
+	)
+	if err != nil {
+		return 0, err
+	}
 
-	return 0, err
+	cardFaceID, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return cardFaceID, nil
 }
 
 func (c *cardRepository) upsertCardFaceColors(tx *sql.Tx, cardFaceID int64, colors []string) error {
-	// TODO: Optimize
 	for _, color := range colors {
 		_, err := tx.Exec(`INSERT INTO card_face_colors (
 			card_face_id,
@@ -293,7 +378,6 @@ func (c *cardRepository) upsertCardFaceColors(tx *sql.Tx, cardFaceID int64, colo
 }
 
 func (c *cardRepository) upsertCardFaceColorIndicators(tx *sql.Tx, cardFaceID int64, colorIndicators []string) error {
-	// TODO: Optimize
 	for _, colorIndicator := range colorIndicators {
 		_, err := tx.Exec(`INSERT INTO card_face_color_indicators (
 			card_face_id,

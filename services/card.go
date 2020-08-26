@@ -11,7 +11,7 @@ import (
 type CardService interface {
 	GetAllCards() (models.BulkData, error)
 	DownloadAllCardData(uri, filepath string) error
-	UpsertCards(cards []models.ScryfallCard) (int64, error)
+	UpsertCards(cards []models.ScryfallCard) error
 }
 
 type cardService struct {
@@ -39,6 +39,6 @@ func (c *cardService) DownloadAllCardData(uri, filepath string) error {
 }
 
 // UpsertCards upserts cards into the database.
-func (c *cardService) UpsertCards(cards []models.ScryfallCard) (int64, error) {
+func (c *cardService) UpsertCards(cards []models.ScryfallCard) error {
 	return c.cardRepo.UpsertCards(cards)
 }
