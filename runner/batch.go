@@ -2,6 +2,7 @@ package runner
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
@@ -33,28 +34,25 @@ func (b *batchRunner) Run() {
 	b.logger.Println("Batch starting...")
 	start := time.Now()
 
-	// TODO: Scryfall bulk data file is broken today...
-	// allCards, err := b.cardService.GetAllCards()
-	// if err != nil {
-	// 	b.logger.Errorf("error fetching all cards from api: %s", err.Error())
-	// 	return
-	// }
+	allCards, err := b.cardService.GetAllCards()
+	if err != nil {
+		b.logger.Errorf("error fetching all cards from api: %s", err.Error())
+		return
+	}
 
-	// if (allCards == models.BulkData{}) {
-	// 	b.logger.Errorf("all cards not found")
-	// 	return
-	// }
+	if (allCards == models.BulkData{}) {
+		b.logger.Errorf("all cards not found")
+		return
+	}
 
-	// // TODO: Compare allCards.UpdatedAt against last run
+	// TODO: Compare allCards.UpdatedAt against last run
 
-	// filepath := fmt.Sprintf("allcards-%v.json", int32(time.Now().Unix()))
-	// err = b.cardService.DownloadAllCardData(allCards.DownloadURI, filepath)
-	// if err != nil {
-	// 	b.logger.Fatalf("error downloading all cards data from api: %s", err.Error())
-	// 	return
-	// }
-
-	filepath := "all-cards-20200823211847.json"
+	filepath := fmt.Sprintf("allcards-%v.json", int32(time.Now().Unix()))
+	err = b.cardService.DownloadAllCardData(allCards.DownloadURI, filepath)
+	if err != nil {
+		b.logger.Fatalf("error downloading all cards data from api: %s", err.Error())
+		return
+	}
 
 	b.logger.Println("Processing all-cards bulk data file...")
 
