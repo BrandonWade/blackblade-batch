@@ -250,6 +250,18 @@ func (c *cardRepository) upsertCardPrices(tx *sql.Tx, cardID int64, prices model
 
 func (c *cardRepository) getCardFaces(card models.ScryfallCard) []models.ScryfallCardFace {
 	if len(card.CardFaces) > 0 {
+		// Some card layouts have 2 faces but only a single set of image URIs
+		if card.Layout == "flip" || card.Layout == "split" || card.Layout == "adventure" {
+			for i := range card.CardFaces {
+				card.CardFaces[i].ImageURIs.Small = card.ImageURIs.Small
+				card.CardFaces[i].ImageURIs.Normal = card.ImageURIs.Normal
+				card.CardFaces[i].ImageURIs.Large = card.ImageURIs.Large
+				card.CardFaces[i].ImageURIs.PNG = card.ImageURIs.PNG
+				card.CardFaces[i].ImageURIs.ArtCrop = card.ImageURIs.ArtCrop
+				card.CardFaces[i].ImageURIs.BorderCrop = card.ImageURIs.BorderCrop
+			}
+		}
+
 		return card.CardFaces
 	}
 
