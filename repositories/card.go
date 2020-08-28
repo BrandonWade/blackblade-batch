@@ -10,6 +10,7 @@ import (
 // CardRepository interface for working with a cardRepository
 type CardRepository interface {
 	UpsertCards(cards []models.ScryfallCard) error
+	GenerateSetNameImageValues() error
 }
 
 type cardRepository struct {
@@ -398,4 +399,21 @@ func (c *cardRepository) upsertCardFaceColorIndicators(tx *sql.Tx, cardFaceID in
 	}
 
 	return nil
+}
+
+func (c *cardRepository) GenerateSetNameImageValues() error {
+	_, err := c.db.Exec(`UPDATE cards c
+		INNER JOIN (
+			SELECT
+			c.oracle_id,
+			JSON_ARRAYAGG(JSON_OBJECT('set_name', c.set_name, 'image', f.image_normal)) sets
+			FROM cards c
+			INNER JOIN card_faces f ON c.id = f.card_id
+			GROUP BY c.oracle_id
+		) a
+		SET c.set_name_image_json = a.sets
+		WHERE c.oracle_id = a.oracle_id
+	`)
+
+	return err
 }

@@ -109,7 +109,12 @@ func (b *batchRunner) Run() {
 		return
 	}
 
-	// TODO: Populate card_sets_images table
+	b.logger.Println("Calculating cards.set_names_images_json column values...")
+	err = b.cardService.GenerateSetNameImageValues()
+	if err != nil {
+		b.logger.Errorf("error generating cards.set_names_images_json values: %s", err.Error())
+		return
+	}
 
 	elapsed := time.Since(start)
 	b.logger.Printf("Batch completed in %s.", elapsed)
