@@ -14,7 +14,7 @@ import (
 
 // ScryfallClient interface for working with a scryfallClient.
 type ScryfallClient interface {
-	GetAllCards() (models.BulkData, error)
+	GetAllCards() (models.ScryfallBulkData, error)
 	DownloadAllCardData(uri, filepath string) error
 }
 
@@ -34,19 +34,19 @@ func NewScryfallClient(baseURL string, logger *logrus.Logger, client *scryfall.C
 }
 
 // GetAllCards returns the all_cards bulk data from the Scryfall API.
-func (s *scryfallClient) GetAllCards() (models.BulkData, error) {
+func (s *scryfallClient) GetAllCards() (models.ScryfallBulkData, error) {
 	url := fmt.Sprintf("%s/bulk-data/all-cards", s.baseURL)
 
 	res, err := http.Get(url)
 	if err != nil {
-		return models.BulkData{}, err
+		return models.ScryfallBulkData{}, err
 	}
 	defer res.Body.Close()
 
-	allCards := models.BulkData{}
+	allCards := models.ScryfallBulkData{}
 	err = json.NewDecoder(res.Body).Decode(&allCards)
 	if err != nil {
-		return models.BulkData{}, err
+		return models.ScryfallBulkData{}, err
 	}
 
 	return allCards, nil

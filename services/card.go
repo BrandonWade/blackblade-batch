@@ -9,7 +9,7 @@ import (
 
 // CardService interface for working with a cardService
 type CardService interface {
-	GetAllCards() (models.BulkData, error)
+	GetAllCards() (models.ScryfallBulkData, error)
 	DownloadAllCardData(uri, filepath string) error
 	UpsertCards(cards []models.ScryfallCard) error
 	GenerateSetNameImageValues() error
@@ -31,7 +31,7 @@ func NewCardService(logger *logrus.Logger, scryfallClient clients.ScryfallClient
 }
 
 // GetAllCards returns the all_cards bulk data from the Scryfall API.
-func (c *cardService) GetAllCards() (models.BulkData, error) {
+func (c *cardService) GetAllCards() (models.ScryfallBulkData, error) {
 	return c.scryfallClient.GetAllCards()
 }
 

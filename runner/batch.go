@@ -40,7 +40,7 @@ func (b *batchRunner) Run() {
 		return
 	}
 
-	if (allCards == models.BulkData{}) {
+	if (allCards == models.ScryfallBulkData{}) {
 		b.logger.Errorf("all cards not found")
 		return
 	}
