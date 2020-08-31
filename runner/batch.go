@@ -78,6 +78,10 @@ func (b *batchRunner) Run() {
 		err = dec.Decode(&card)
 		if err != nil {
 			b.logger.Errorf("error decoding card: %s", err.Error())
+
+			if err.Error() == "not at beginning of value" {
+				b.logger.Fatalf("bulk data file contents in unexpected format - is the scryfall bulk data api broken?")
+			}
 		}
 
 		if card.Lang == "en" && card.TypeLine != "Vanguard" {
