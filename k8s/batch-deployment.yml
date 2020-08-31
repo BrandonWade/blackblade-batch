@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment # TODO: Use a CronJob instead
+metadata:
+    name: batch-deployment
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            component: batch
+    template:
+        metadata:
+            labels:
+                component: batch
+        spec:
+            containers:
+                - name: blackblade-batch
+                  image: brandonwade/blackblade-batch:latest
+                  ports:
+                      - containerPort: 8300
+                  env:
+                      - name: BASE_SCRYFALL_URL
+                        value: https://api.scryfall.com
+                      - name: DB_USERNAME
+                        value: blackblade
+                      - name: DB_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: mysqlpassword
+                                key: MYSQL_PASSWORD
+                      - name: DB_DATABASE
+                        value: blackblade
+                      - name: DB_HOST
+                        value: db-cluster-ip-service
+                      - name: DB_PORT
+                        value: '3306'
+            imagePullSecrets:
+                - name: regcred
