@@ -57,8 +57,8 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 		}
 
 		cardFaces := c.getCardFaces(card)
-		for _, cardFace := range cardFaces {
-			cardFaceID, err := c.upsertCardFace(tx, cardID, cardFace)
+		for i, cardFace := range cardFaces {
+			cardFaceID, err := c.upsertCardFace(tx, cardID, i, cardFace)
 			if err != nil {
 				return err
 			}
@@ -132,7 +132,55 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		?,
 		?,
 		?
-	)`,
+	) ON DUPLICATE KEY UPDATE
+		id = LAST_INSERT_ID(id),
+		scryfall_id = ?,
+		oracle_id = ?,
+		tcgplayer_id = ?,
+		card_back_id = ?,`+
+		"`set` = ?,"+
+		`set_name = ?,
+		rarity = ?,
+		layout = ?,
+		border_color = ?,
+		frame = ?,
+		released_at = ?,
+		has_foil = ?,
+		has_nonfoil = ?,
+		is_oversized = ?,
+		is_reserved = ?,
+		is_booster = ?,
+		is_digital_only = ?,
+		is_full_art = ?,
+		is_textless = ?,
+		is_reprint = ?,
+		has_highres_image = ?,
+		rulings_uri = ?,
+		scryfall_uri = ?
+	`,
+		card.ID,
+		card.OracleID,
+		card.TCGPlayerID,
+		card.CardBackID,
+		card.Set,
+		card.SetName,
+		card.Rarity,
+		card.Layout,
+		card.BorderColor,
+		card.Frame,
+		card.ReleasedAt,
+		card.Foil,
+		card.Nonfoil,
+		card.Oversized,
+		card.Reserved,
+		card.Booster,
+		card.Digital,
+		card.FullArt,
+		card.Textless,
+		card.Reprint,
+		card.HighresImage,
+		card.RulingsURI,
+		card.ScryfallURI,
 		card.ID,
 		card.OracleID,
 		card.TCGPlayerID,
@@ -290,9 +338,10 @@ func (c *cardRepository) getCardFaces(card models.ScryfallCard) []models.Scryfal
 	}
 }
 
-func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, cardFace models.ScryfallCardFace) (int64, error) {
+func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.ScryfallCardFace) (int64, error) {
 	result, err := tx.Exec(`INSERT INTO card_faces (
 		card_id,
+		face_index,
 		artist,
 		flavor_text,
 		illustration_id,
@@ -328,9 +377,46 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, cardFace model
 		?,
 		?,
 		?,
+		?,
 		?
-	)`,
+	) ON DUPLICATE KEY UPDATE
+		artist = ?,
+		flavor_text = ?,
+		illustration_id = ?,
+		image_small = ?,
+		image_normal = ?,
+		image_large = ?,
+		image_png = ?,
+		image_art_crop = ?,
+		image_border_crop = ?,
+		mana_cost = ?,
+		name = ?,
+		oracle_text = ?,
+		power = ?,
+		toughness = ?,
+		loyalty = ?,
+		type_line = ?,
+		watermark = ?
+	`,
 		cardID,
+		index,
+		cardFace.Artist,
+		cardFace.FlavorText,
+		cardFace.IllustrationID,
+		cardFace.ImageURIs.Small,
+		cardFace.ImageURIs.Normal,
+		cardFace.ImageURIs.Large,
+		cardFace.ImageURIs.PNG,
+		cardFace.ImageURIs.ArtCrop,
+		cardFace.ImageURIs.BorderCrop,
+		cardFace.ManaCost,
+		cardFace.Name,
+		cardFace.OracleText,
+		cardFace.Power,
+		cardFace.Toughness,
+		cardFace.Loyalty,
+		cardFace.TypeLine,
+		cardFace.Watermark,
 		cardFace.Artist,
 		cardFace.FlavorText,
 		cardFace.IllustrationID,
