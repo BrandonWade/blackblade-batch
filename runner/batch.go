@@ -45,8 +45,6 @@ func (b *batchRunner) Run() {
 		return
 	}
 
-	// TODO: Compare allCards.UpdatedAt against last run
-
 	filepath := fmt.Sprintf("allcards-%v.json", int32(time.Now().Unix()))
 	err = b.cardService.DownloadAllCardData(allCards.DownloadURI, filepath)
 	if err != nil {

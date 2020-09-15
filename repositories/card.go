@@ -41,12 +41,12 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 			continue
 		}
 
-		err = c.upsertCardMultiverseIDs(tx, cardID, card.MultiverseIDs)
+		err = c.insertCardMultiverseIDs(tx, cardID, card.MultiverseIDs)
 		if err != nil {
 			return err
 		}
 
-		err = c.upsertCardFrameEffects(tx, cardID, card.FrameEffects)
+		err = c.insertCardFrameEffects(tx, cardID, card.FrameEffects)
 		if err != nil {
 			return err
 		}
@@ -63,12 +63,12 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 				return err
 			}
 
-			err = c.upsertCardFaceColors(tx, cardFaceID, cardFace.Colors)
+			err = c.insertCardFaceColors(tx, cardFaceID, cardFace.Colors)
 			if err != nil {
 				return err
 			}
 
-			err = c.upsertCardFaceColorIndicators(tx, cardFaceID, cardFace.ColorIndicator)
+			err = c.insertCardFaceColorIndicators(tx, cardFaceID, cardFace.ColorIndicator)
 			if err != nil {
 				return err
 			}
@@ -133,7 +133,6 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		?,
 		?
 	) ON DUPLICATE KEY UPDATE
-		id = LAST_INSERT_ID(id),
 		scryfall_id = ?,
 		oracle_id = ?,
 		tcgplayer_id = ?,
@@ -214,22 +213,36 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		return 0, err
 	}
 
+	// When using ON DUPLICATE KEY UPDATE, MySQL does allow you to return the ID for the existing row
+	// using LAST_INSERT_ID(id), however this causes the AUTO_INCREMENT value to be increased by 2 per
+	// row every time the batch runs as every row is always updated.
+	if cardID == 0 {
+		err := c.db.Get(&cardID, `SELECT
+			id
+			FROM cards c
+			WHERE c.scryfall_id = ?
+		`,
+			card.ID,
+		)
+		if err != nil {
+			return 0, err
+		}
+	}
+
 	return cardID, nil
 }
 
-func (c *cardRepository) upsertCardMultiverseIDs(tx *sql.Tx, cardID int64, multiverseIDs []int) error {
+func (c *cardRepository) insertCardMultiverseIDs(tx *sql.Tx, cardID int64, multiverseIDs []int) error {
 	for _, multiverseID := range multiverseIDs {
-		_, err := tx.Exec(`INSERT INTO card_multiverse_ids (
+		_, err := tx.Exec(`INSERT IGNORE INTO card_multiverse_ids (
 			card_id,
 			multiverse_id
 		) VALUES (
 			?,
 			?
-		) ON DUPLICATE KEY UPDATE
-			multiverse_id = ?
+		)
 		`,
 			cardID,
-			multiverseID,
 			multiverseID,
 		)
 		if err != nil {
@@ -240,19 +253,17 @@ func (c *cardRepository) upsertCardMultiverseIDs(tx *sql.Tx, cardID int64, multi
 	return nil
 }
 
-func (c *cardRepository) upsertCardFrameEffects(tx *sql.Tx, cardID int64, frameEffects []string) error {
+func (c *cardRepository) insertCardFrameEffects(tx *sql.Tx, cardID int64, frameEffects []string) error {
 	for _, frameEffect := range frameEffects {
-		_, err := tx.Exec(`INSERT INTO card_frame_effects (
+		_, err := tx.Exec(`INSERT IGNORE INTO card_frame_effects (
 			card_id,
 			frame_effect
 		) VALUES (
 			?,
 			?
-		) ON DUPLICATE KEY UPDATE
-			frame_effect = ?
+		)
 		`,
 			cardID,
-			frameEffect,
 			frameEffect,
 		)
 		if err != nil {
@@ -447,19 +458,17 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 	return cardFaceID, nil
 }
 
-func (c *cardRepository) upsertCardFaceColors(tx *sql.Tx, cardFaceID int64, colors []string) error {
+func (c *cardRepository) insertCardFaceColors(tx *sql.Tx, cardFaceID int64, colors []string) error {
 	for _, color := range colors {
-		_, err := tx.Exec(`INSERT INTO card_face_colors (
+		_, err := tx.Exec(`INSERT IGNORE INTO card_face_colors (
 			card_face_id,
 			color
 		) VALUES (
 			?,
 			?
-		) ON DUPLICATE KEY UPDATE
-			color = ?
+		)
 		`,
 			cardFaceID,
-			color,
 			color,
 		)
 		if err != nil {
@@ -470,19 +479,17 @@ func (c *cardRepository) upsertCardFaceColors(tx *sql.Tx, cardFaceID int64, colo
 	return nil
 }
 
-func (c *cardRepository) upsertCardFaceColorIndicators(tx *sql.Tx, cardFaceID int64, colorIndicators []string) error {
+func (c *cardRepository) insertCardFaceColorIndicators(tx *sql.Tx, cardFaceID int64, colorIndicators []string) error {
 	for _, colorIndicator := range colorIndicators {
-		_, err := tx.Exec(`INSERT INTO card_face_color_indicators (
+		_, err := tx.Exec(`INSERT IGNORE INTO card_face_color_indicators (
 			card_face_id,
 			color_indicator
 		) VALUES (
 			?,
 			?
-		) ON DUPLICATE KEY UPDATE
-			color_indicator = ?
+		)
 		`,
 			cardFaceID,
-			colorIndicator,
 			colorIndicator,
 		)
 		if err != nil {
@@ -493,6 +500,7 @@ func (c *cardRepository) upsertCardFaceColorIndicators(tx *sql.Tx, cardFaceID in
 	return nil
 }
 
+// GenerateSetNameImageValues calculates the set name and images for each card in the database and saves the result as JSON.
 func (c *cardRepository) GenerateSetNameImageValues() error {
 	_, err := c.db.Exec(`UPDATE cards c
 		INNER JOIN (

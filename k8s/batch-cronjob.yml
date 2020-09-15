@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
     name: batch-cronjob
 spec:
-    schedule: '35 * * * *'
+    schedule: '0 0 * * 6'
     jobTemplate:
         spec:
             template:
