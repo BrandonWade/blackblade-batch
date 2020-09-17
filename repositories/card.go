@@ -10,7 +10,8 @@ import (
 // CardRepository interface for working with a cardRepository
 type CardRepository interface {
 	UpsertCards(cards []models.ScryfallCard) error
-	GenerateSetNameImageValues() error
+	GenerateFacesJSON() error
+	GenerateSetsJSON() error
 }
 
 type cardRepository struct {
@@ -500,19 +501,60 @@ func (c *cardRepository) insertCardFaceColorIndicators(tx *sql.Tx, cardFaceID in
 	return nil
 }
 
-// GenerateSetNameImageValues calculates the set name and images for each card in the database and saves the result as JSON.
-func (c *cardRepository) GenerateSetNameImageValues() error {
+// GenerateFacesJSON calculates card face info per card saves the result as JSON to the card row.
+func (c *cardRepository) GenerateFacesJSON() error {
 	_, err := c.db.Exec(`UPDATE cards c
 		INNER JOIN (
 			SELECT
-			c.oracle_id,
-			JSON_ARRAYAGG(JSON_OBJECT('set_name', c.set_name, 'image', f.image_normal)) sets
+			c.id card_id,
+			JSON_ARRAYAGG(JSON_OBJECT(
+				'face_id', f.id,
+				'name', f.name,
+				'mana_cost', f.mana_cost,
+				'type_line', f.type_line,
+				'oracle_text', f.oracle_text,
+				'flavor_text', f.flavor_text,
+				'image', f.image_normal,
+				'power', f.power,
+				'toughness', f.toughness,
+				'loyalty', f.loyalty,
+				'artist', f.artist
+			)) faces
 			FROM cards c
-			INNER JOIN card_faces f ON c.id = f.card_id
-			GROUP BY c.oracle_id
+			INNER JOIN card_faces f ON f.card_id = c.id
+			GROUP BY c.id
 		) a
-		SET c.set_name_image_json = a.sets
-		WHERE c.oracle_id = a.oracle_id
+		SET c.faces_json = a.faces
+		WHERE c.id = a.card_id
+	`)
+
+	return err
+}
+
+// GenerateSetsJSON calculates card set info per card saves the result as JSON to the card row.
+func (c *cardRepository) GenerateSetsJSON() error {
+	_, err := c.db.Exec(`UPDATE cards c
+		INNER JOIN (
+			SELECT
+			a.oracle_id,
+			JSON_ARRAYAGG(JSON_OBJECT(
+				'set_name', a.set_name,
+				'card_faces', a.faces_json
+			)) sets
+			FROM (
+				SELECT
+				c.oracle_id,
+				c.set_name,
+				c.faces_json
+				FROM cards c
+				INNER JOIN card_faces f ON c.id = f.card_id
+				GROUP BY c.id
+				ORDER BY c.released_at DESC
+			) a
+			GROUP BY a.oracle_id
+		) b
+		SET c.sets_json = b.sets
+		WHERE c.oracle_id = b.oracle_id
 	`)
 
 	return err

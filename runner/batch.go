@@ -111,10 +111,17 @@ func (b *batchRunner) Run() {
 		return
 	}
 
-	b.logger.Println("Calculating cards.set_names_images_json column values...")
-	err = b.cardService.GenerateSetNameImageValues()
+	b.logger.Println("Calculating cards.faces_json column values...")
+	err = b.cardService.GenerateFacesJSON()
 	if err != nil {
-		b.logger.Errorf("error generating cards.set_names_images_json values: %s", err.Error())
+		b.logger.Errorf("error generating cards.faces_json values: %s", err.Error())
+		return
+	}
+
+	b.logger.Println("Calculating cards.sets_json column values...")
+	err = b.cardService.GenerateSetsJSON()
+	if err != nil {
+		b.logger.Errorf("error generating cards.sets_json values: %s", err.Error())
 		return
 	}
 

@@ -12,7 +12,8 @@ type CardService interface {
 	GetAllCards() (models.ScryfallBulkData, error)
 	DownloadAllCardData(uri, filepath string) error
 	UpsertCards(cards []models.ScryfallCard) error
-	GenerateSetNameImageValues() error
+	GenerateFacesJSON() error
+	GenerateSetsJSON() error
 }
 
 type cardService struct {
@@ -45,7 +46,12 @@ func (c *cardService) UpsertCards(cards []models.ScryfallCard) error {
 	return c.cardRepo.UpsertCards(cards)
 }
 
-// GenerateSetNameImageValues calculates the set name and images for each card in the database and saves the result.
-func (c *cardService) GenerateSetNameImageValues() error {
-	return c.cardRepo.GenerateSetNameImageValues()
+// GenerateFacesJSON calculates the set name and images for each card in the database and saves the result.
+func (c *cardService) GenerateFacesJSON() error {
+	return c.cardRepo.GenerateFacesJSON()
+}
+
+// GenerateSetsJSON calculates the set name and images for each card in the database and saves the result.
+func (c *cardService) GenerateSetsJSON() error {
+	return c.cardRepo.GenerateSetsJSON()
 }
