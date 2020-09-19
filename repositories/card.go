@@ -533,29 +533,47 @@ func (c *cardRepository) GenerateFacesJSON() error {
 
 // GenerateSetsJSON calculates card set info per card saves the result as JSON to the card row.
 func (c *cardRepository) GenerateSetsJSON() error {
-	_, err := c.db.Exec(`UPDATE cards c
-		INNER JOIN (
-			SELECT
-			a.oracle_id,
-			JSON_ARRAYAGG(JSON_OBJECT(
-				'set_name', a.set_name,
-				'card_faces', a.faces_json
-			)) sets
-			FROM (
-				SELECT
-				c.oracle_id,
-				c.set_name,
-				c.faces_json
-				FROM cards c
-				INNER JOIN card_faces f ON c.id = f.card_id
-				GROUP BY c.id
-				ORDER BY c.released_at DESC
-			) a
-			GROUP BY a.oracle_id
-		) b
-		SET c.sets_json = b.sets
-		WHERE c.oracle_id = b.oracle_id
-	`)
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
 
-	return err
+	_, err = tx.Exec(`INSERT INTO card_sets_list (oracle_id, sets_json)
+		SELECT
+		a.oracle_id,
+		JSON_ARRAYAGG(JSON_OBJECT(
+			'set_name', a.set_name,
+			'card_faces', a.faces_json
+		)) sets
+		FROM (
+			SELECT
+			c.oracle_id,
+			c.set_name,
+			c.faces_json
+			FROM cards c
+			INNER JOIN card_faces f ON c.id = f.card_id
+			GROUP BY c.id
+			ORDER BY c.released_at DESC
+		) a
+		GROUP BY a.oracle_id
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`UPDATE cards c
+		INNER JOIN card_sets_list s ON s.oracle_id = c.oracle_id
+		SET c.card_sets_list_id = s.id
+		WHERE c.oracle_id = s.oracle_id
+	`)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

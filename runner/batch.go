@@ -118,10 +118,10 @@ func (b *batchRunner) Run() {
 		return
 	}
 
-	b.logger.Println("Calculating cards.sets_json column values...")
+	b.logger.Println("Calculating card_sets_list table...")
 	err = b.cardService.GenerateSetsJSON()
 	if err != nil {
-		b.logger.Errorf("error generating cards.sets_json values: %s", err.Error())
+		b.logger.Errorf("error generating card_sets_list table: %s", err.Error())
 		return
 	}
 
