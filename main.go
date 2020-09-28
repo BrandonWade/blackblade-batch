@@ -51,7 +51,7 @@ func main() {
 	defer db.Close()
 
 	scryfallClient := clients.NewScryfallClient(baseURL, logger, client)
-	cardRepository := repositories.NewCardRepository(db)
+	cardRepository := repositories.NewCardRepository(logger, db)
 	cardService := services.NewCardService(logger, scryfallClient, cardRepository)
 	batchRunner := runner.NewBatchRunner(logger, cardService)
 

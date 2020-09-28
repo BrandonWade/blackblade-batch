@@ -2,9 +2,11 @@ package repositories
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/BrandonWade/blackblade-batch/models"
 	"github.com/jmoiron/sqlx"
+	"github.com/sirupsen/logrus"
 )
 
 // CardRepository interface for working with a cardRepository
@@ -15,12 +17,14 @@ type CardRepository interface {
 }
 
 type cardRepository struct {
-	db *sqlx.DB
+	logger *logrus.Logger
+	db     *sqlx.DB
 }
 
 // NewCardRepository create a new CardRepository instance
-func NewCardRepository(db *sqlx.DB) CardRepository {
+func NewCardRepository(logger *logrus.Logger, db *sqlx.DB) CardRepository {
 	return &cardRepository{
+		logger,
 		db,
 	}
 }
@@ -42,34 +46,34 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 			continue
 		}
 
-		err = c.insertCardMultiverseIDs(tx, cardID, card.MultiverseIDs)
+		err = insertCardMultiverseIDs(tx, cardID, card.MultiverseIDs)
 		if err != nil {
 			return err
 		}
 
-		err = c.insertCardFrameEffects(tx, cardID, card.FrameEffects)
+		err = insertCardFrameEffects(tx, cardID, card.FrameEffects)
 		if err != nil {
 			return err
 		}
 
-		err = c.upsertCardPrices(tx, cardID, card.Prices)
+		err = upsertCardPrices(tx, cardID, card.Prices)
 		if err != nil {
 			return err
 		}
 
 		cardFaces := c.getCardFaces(card)
 		for i, cardFace := range cardFaces {
-			cardFaceID, err := c.upsertCardFace(tx, cardID, i, cardFace)
+			cardFaceID, err := upsertCardFace(tx, cardID, i, cardFace)
 			if err != nil {
 				return err
 			}
 
-			err = c.insertCardFaceColors(tx, cardFaceID, cardFace.Colors)
+			err = insertCardFaceColors(tx, cardFaceID, cardFace.Colors)
 			if err != nil {
 				return err
 			}
 
-			err = c.insertCardFaceColorIndicators(tx, cardFaceID, cardFace.ColorIndicator)
+			err = insertCardFaceColorIndicators(tx, cardFaceID, cardFace.ColorIndicator)
 			if err != nil {
 				return err
 			}
@@ -233,7 +237,7 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 	return cardID, nil
 }
 
-func (c *cardRepository) insertCardMultiverseIDs(tx *sql.Tx, cardID int64, multiverseIDs []int) error {
+func insertCardMultiverseIDs(tx *sql.Tx, cardID int64, multiverseIDs []int) error {
 	for _, multiverseID := range multiverseIDs {
 		_, err := tx.Exec(`INSERT IGNORE INTO card_multiverse_ids (
 			card_id,
@@ -254,7 +258,7 @@ func (c *cardRepository) insertCardMultiverseIDs(tx *sql.Tx, cardID int64, multi
 	return nil
 }
 
-func (c *cardRepository) insertCardFrameEffects(tx *sql.Tx, cardID int64, frameEffects []string) error {
+func insertCardFrameEffects(tx *sql.Tx, cardID int64, frameEffects []string) error {
 	for _, frameEffect := range frameEffects {
 		_, err := tx.Exec(`INSERT IGNORE INTO card_frame_effects (
 			card_id,
@@ -275,7 +279,7 @@ func (c *cardRepository) insertCardFrameEffects(tx *sql.Tx, cardID int64, frameE
 	return nil
 }
 
-func (c *cardRepository) upsertCardPrices(tx *sql.Tx, cardID int64, prices models.ScryfallPrices) error {
+func upsertCardPrices(tx *sql.Tx, cardID int64, prices models.ScryfallPrices) error {
 	_, err := tx.Exec(`INSERT INTO card_prices (
 		card_id,
 		usd,
@@ -333,6 +337,7 @@ func (c *cardRepository) getCardFaces(card models.ScryfallCard) []models.Scryfal
 		IllustrationID:  card.IllustrationID,
 		ImageURIs:       card.ImageURIs,
 		Loyalty:         card.Loyalty,
+		CMC:             card.CMC,
 		ManaCost:        card.ManaCost,
 		Name:            card.Name,
 		OracleText:      card.OracleText,
@@ -341,6 +346,7 @@ func (c *cardRepository) getCardFaces(card models.ScryfallCard) []models.Scryfal
 		PrintedText:     card.PrintedText,
 		PrintedTypeLine: card.PrintedTypeLine,
 		Toughness:       card.Toughness,
+		DerivedType:     c.getDerivedType(card.TypeLine),
 		TypeLine:        card.TypeLine,
 		Watermark:       card.Watermark,
 	}
@@ -350,7 +356,31 @@ func (c *cardRepository) getCardFaces(card models.ScryfallCard) []models.Scryfal
 	}
 }
 
-func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.ScryfallCardFace) (int64, error) {
+func (c *cardRepository) getDerivedType(cardType string) string {
+	t := strings.ToLower(cardType)
+
+	if strings.Contains(t, "creature") {
+		return "creature"
+	} else if strings.Contains(t, "artifact") {
+		return "artifact"
+	} else if strings.Contains(t, "enchantment") {
+		return "enchantment"
+	} else if strings.Contains(t, "instant") {
+		return "instant"
+	} else if strings.Contains(t, "sorcery") {
+		return "sorcery"
+	} else if strings.Contains(t, "planeswalker") {
+		return "planeswalker"
+	} else if strings.Contains(t, "land") {
+		return "land"
+	}
+
+	c.logger.Errorf("unknown card type: %s\n", cardType)
+
+	return ""
+}
+
+func upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.ScryfallCardFace) (int64, error) {
 	result, err := tx.Exec(`INSERT INTO card_faces (
 		card_id,
 		face_index,
@@ -363,6 +393,7 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 		image_png,
 		image_art_crop,
 		image_border_crop,
+		cmc,
 		mana_cost,
 		name,
 		oracle_text,
@@ -370,8 +401,11 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 		toughness,
 		loyalty,
 		type_line,
+		derived_type,
 		watermark
 	) VALUES (
+		?,
+		?,
 		?,
 		?,
 		?,
@@ -401,6 +435,7 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 		image_png = ?,
 		image_art_crop = ?,
 		image_border_crop = ?,
+		cmc = ?,
 		mana_cost = ?,
 		name = ?,
 		oracle_text = ?,
@@ -408,6 +443,7 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 		toughness = ?,
 		loyalty = ?,
 		type_line = ?,
+		derived_type = ?,
 		watermark = ?
 	`,
 		cardID,
@@ -421,6 +457,7 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 		cardFace.ImageURIs.PNG,
 		cardFace.ImageURIs.ArtCrop,
 		cardFace.ImageURIs.BorderCrop,
+		cardFace.CMC,
 		cardFace.ManaCost,
 		cardFace.Name,
 		cardFace.OracleText,
@@ -428,6 +465,7 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 		cardFace.Toughness,
 		cardFace.Loyalty,
 		cardFace.TypeLine,
+		cardFace.DerivedType,
 		cardFace.Watermark,
 		cardFace.Artist,
 		cardFace.FlavorText,
@@ -438,6 +476,7 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 		cardFace.ImageURIs.PNG,
 		cardFace.ImageURIs.ArtCrop,
 		cardFace.ImageURIs.BorderCrop,
+		cardFace.CMC,
 		cardFace.ManaCost,
 		cardFace.Name,
 		cardFace.OracleText,
@@ -445,6 +484,7 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 		cardFace.Toughness,
 		cardFace.Loyalty,
 		cardFace.TypeLine,
+		cardFace.DerivedType,
 		cardFace.Watermark,
 	)
 	if err != nil {
@@ -459,7 +499,7 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 	return cardFaceID, nil
 }
 
-func (c *cardRepository) insertCardFaceColors(tx *sql.Tx, cardFaceID int64, colors []string) error {
+func insertCardFaceColors(tx *sql.Tx, cardFaceID int64, colors []string) error {
 	for _, color := range colors {
 		_, err := tx.Exec(`INSERT IGNORE INTO card_face_colors (
 			card_face_id,
@@ -480,7 +520,7 @@ func (c *cardRepository) insertCardFaceColors(tx *sql.Tx, cardFaceID int64, colo
 	return nil
 }
 
-func (c *cardRepository) insertCardFaceColorIndicators(tx *sql.Tx, cardFaceID int64, colorIndicators []string) error {
+func insertCardFaceColorIndicators(tx *sql.Tx, cardFaceID int64, colorIndicators []string) error {
 	for _, colorIndicator := range colorIndicators {
 		_, err := tx.Exec(`INSERT IGNORE INTO card_face_color_indicators (
 			card_face_id,
@@ -511,7 +551,9 @@ func (c *cardRepository) GenerateFacesJSON() error {
 				'face_id', f.id,
 				'name', f.name,
 				'mana_cost', f.mana_cost,
+				'cmc', f.cmc,
 				'type_line', f.type_line,
+				'derived_type', f.derived_type,
 				'oracle_text', f.oracle_text,
 				'flavor_text', f.flavor_text,
 				'image', f.image_normal,
