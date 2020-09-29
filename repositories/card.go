@@ -93,7 +93,8 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		scryfall_id,
 		oracle_id,
 		tcgplayer_id,
-		card_back_id,`+
+		card_back_id,
+		cmc,`+
 		"`set`,"+
 		`set_name,
 		rarity,
@@ -136,12 +137,14 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		?,
 		?,
 		?,
+		?,
 		?
 	) ON DUPLICATE KEY UPDATE
 		scryfall_id = ?,
 		oracle_id = ?,
 		tcgplayer_id = ?,
-		card_back_id = ?,`+
+		card_back_id = ?,
+		cmc = ?,`+
 		"`set` = ?,"+
 		`set_name = ?,
 		rarity = ?,
@@ -166,6 +169,7 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		card.OracleID,
 		card.TCGPlayerID,
 		card.CardBackID,
+		card.CMC,
 		card.Set,
 		card.SetName,
 		card.Rarity,
@@ -189,6 +193,7 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		card.OracleID,
 		card.TCGPlayerID,
 		card.CardBackID,
+		card.CMC,
 		card.Set,
 		card.SetName,
 		card.Rarity,
@@ -326,6 +331,11 @@ func (c *cardRepository) getCardFaces(card models.ScryfallCard) []models.Scryfal
 			}
 		}
 
+		// Determine face derived types
+		for i := range card.CardFaces {
+			card.CardFaces[i].DerivedType = c.getDerivedType(card.CardFaces[i].TypeLine)
+		}
+
 		return card.CardFaces
 	}
 
@@ -337,7 +347,6 @@ func (c *cardRepository) getCardFaces(card models.ScryfallCard) []models.Scryfal
 		IllustrationID:  card.IllustrationID,
 		ImageURIs:       card.ImageURIs,
 		Loyalty:         card.Loyalty,
-		CMC:             card.CMC,
 		ManaCost:        card.ManaCost,
 		Name:            card.Name,
 		OracleText:      card.OracleText,
@@ -375,8 +384,6 @@ func (c *cardRepository) getDerivedType(cardType string) string {
 		return "land"
 	}
 
-	c.logger.Errorf("unknown card type: %s\n", cardType)
-
 	return ""
 }
 
@@ -393,7 +400,6 @@ func upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.Scryfal
 		image_png,
 		image_art_crop,
 		image_border_crop,
-		cmc,
 		mana_cost,
 		name,
 		oracle_text,
@@ -404,7 +410,6 @@ func upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.Scryfal
 		derived_type,
 		watermark
 	) VALUES (
-		?,
 		?,
 		?,
 		?,
@@ -435,7 +440,6 @@ func upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.Scryfal
 		image_png = ?,
 		image_art_crop = ?,
 		image_border_crop = ?,
-		cmc = ?,
 		mana_cost = ?,
 		name = ?,
 		oracle_text = ?,
@@ -457,7 +461,6 @@ func upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.Scryfal
 		cardFace.ImageURIs.PNG,
 		cardFace.ImageURIs.ArtCrop,
 		cardFace.ImageURIs.BorderCrop,
-		cardFace.CMC,
 		cardFace.ManaCost,
 		cardFace.Name,
 		cardFace.OracleText,
@@ -476,7 +479,6 @@ func upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.Scryfal
 		cardFace.ImageURIs.PNG,
 		cardFace.ImageURIs.ArtCrop,
 		cardFace.ImageURIs.BorderCrop,
-		cardFace.CMC,
 		cardFace.ManaCost,
 		cardFace.Name,
 		cardFace.OracleText,
@@ -551,7 +553,6 @@ func (c *cardRepository) GenerateFacesJSON() error {
 				'face_id', f.id,
 				'name', f.name,
 				'mana_cost', f.mana_cost,
-				'cmc', f.cmc,
 				'type_line', f.type_line,
 				'derived_type', f.derived_type,
 				'oracle_text', f.oracle_text,
@@ -576,6 +577,11 @@ func (c *cardRepository) GenerateFacesJSON() error {
 // GenerateSetsJSON calculates card set info per card saves the result as JSON to the card row.
 func (c *cardRepository) GenerateSetsJSON() error {
 	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`TRUNCATE TABLE card_sets_list`)
 	if err != nil {
 		return err
 	}

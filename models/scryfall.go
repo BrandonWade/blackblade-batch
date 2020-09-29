@@ -164,7 +164,6 @@ type ScryfallCardFace struct {
 	IllustrationID  string            `json:"illustration_id"`
 	ImageURIs       ScryfallImageURIs `json:"image_uris"`
 	Loyalty         string            `json:"loyalty"`
-	CMC             float64           `json:"cmc"`
 	ManaCost        string            `json:"mana_cost"`
 	Name            string            `json:"name"`
 	Object          string            `json:"object"`
@@ -175,7 +174,7 @@ type ScryfallCardFace struct {
 	PrintedTypeLine string            `json:"printed_type_line"`
 	Toughness       string            `json:"toughness"`
 	TypeLine        string            `json:"type_line"`
-	DerivedType     string            `json:"derived_type"`
+	DerivedType     string            `json:"derived_type"` // Not from Scryfall - this is a custom field
 	Watermark       string            `json:"watermark"`
 	ArtistID        string            `json:"artist_id"`
 }
