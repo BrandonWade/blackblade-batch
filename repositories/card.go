@@ -37,6 +37,7 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 	}
 
 	for _, card := range cards {
+		c.setLayout(&card)
 		cardID, err := c.upsertCard(tx, card)
 		if err != nil {
 			return err
@@ -86,6 +87,14 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 	}
 
 	return nil
+}
+
+func (c *cardRepository) setLayout(card *models.ScryfallCard) {
+	for _, keyword := range card.Keywords {
+		if strings.ToLower(keyword) == "aftermath" {
+			(*card).Layout = "aftermath"
+		}
+	}
 }
 
 func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64, error) {
@@ -320,7 +329,7 @@ func upsertCardPrices(tx *sql.Tx, cardID int64, prices models.ScryfallPrices) er
 func (c *cardRepository) getCardFaces(card models.ScryfallCard) []models.ScryfallCardFace {
 	if len(card.CardFaces) > 0 {
 		// Some card layouts have 2 faces but only a single set of image URIs
-		if card.Layout == "flip" || card.Layout == "split" || card.Layout == "adventure" {
+		if card.Layout == "flip" || card.Layout == "split" || card.Layout == "adventure" || card.Layout == "aftermath" {
 			for i := range card.CardFaces {
 				card.CardFaces[i].ImageURIs.Small = card.ImageURIs.Small
 				card.CardFaces[i].ImageURIs.Normal = card.ImageURIs.Normal
