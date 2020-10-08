@@ -24,6 +24,7 @@ type ScryfallCard struct {
 	MtgoID          int64                 `json:"mtgo_id"`
 	MtgoFoilID      int64                 `json:"mtgo_foil_id"`
 	TCGPlayerID     int64                 `json:"tcgplayer_id"`
+	CardmarketID    int64                 `json:"cardmarket_id"`
 	ArenaID         int64                 `json:"arena_id"`
 	Name            string                `json:"name"`
 	FlavorName      string                `json:"flavor_name"`
@@ -127,6 +128,7 @@ type ScryfallPrices struct {
 	USD     string `json:"usd"`
 	USDFoil string `json:"usd_foil"`
 	EUR     string `json:"eur"`
+	EURFoil string `json:"eur_foil"`
 	Tix     string `json:"tix"`
 }
 
