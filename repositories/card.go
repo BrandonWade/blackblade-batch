@@ -64,7 +64,7 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 
 		cardFaces := c.getCardFaces(card)
 		for i, cardFace := range cardFaces {
-			cardFaceID, err := upsertCardFace(tx, cardID, i, cardFace)
+			cardFaceID, err := c.upsertCardFace(tx, cardID, i, cardFace)
 			if err != nil {
 				return err
 			}
@@ -396,7 +396,7 @@ func (c *cardRepository) getDerivedType(cardType string) string {
 	return ""
 }
 
-func upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.ScryfallCardFace) (int64, error) {
+func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.ScryfallCardFace) (int64, error) {
 	result, err := tx.Exec(`INSERT INTO card_faces (
 		card_id,
 		face_index,
@@ -505,6 +505,24 @@ func upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.Scryfal
 	cardFaceID, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
+	}
+
+	// When using ON DUPLICATE KEY UPDATE, MySQL does allow you to return the ID for the existing row
+	// using LAST_INSERT_ID(id), however this causes the AUTO_INCREMENT value to be increased by 2 per
+	// row every time the batch runs as every row is always updated.
+	if cardFaceID == 0 {
+		err := c.db.Get(&cardFaceID, `SELECT
+			id
+			FROM card_faces f
+			WHERE f.card_id = ?
+			AND f.face_index = ?
+		`,
+			cardID,
+			index,
+		)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return cardFaceID, nil
