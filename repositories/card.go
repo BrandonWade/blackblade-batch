@@ -64,17 +64,7 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 
 		cardFaces := c.getCardFaces(card)
 		for i, cardFace := range cardFaces {
-			cardFaceID, err := c.upsertCardFace(tx, cardID, i, cardFace)
-			if err != nil {
-				return err
-			}
-
-			err = insertCardFaceColors(tx, cardFaceID, cardFace.Colors)
-			if err != nil {
-				return err
-			}
-
-			err = insertCardFaceColorIndicators(tx, cardFaceID, cardFace.ColorIndicator)
+			_, err = c.upsertCardFace(tx, cardID, i, cardFace)
 			if err != nil {
 				return err
 			}
@@ -98,14 +88,25 @@ func (c *cardRepository) setLayout(card *models.ScryfallCard) {
 }
 
 func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64, error) {
+	isWhite := contains(card.Colors, "W")
+	isBlue := contains(card.Colors, "U")
+	isBlack := contains(card.Colors, "B")
+	isRed := contains(card.Colors, "R")
+	isGreen := contains(card.Colors, "G")
+
 	result, err := tx.Exec(`INSERT INTO cards (
 		scryfall_id,
 		oracle_id,
 		tcgplayer_id,
 		card_back_id,
-		cmc,`+
-		"`set`,"+
-		`set_name,
+		cmc,
+		is_white,
+		is_blue,
+		is_black,
+		is_red,
+		is_green,
+		set_code,
+		set_name,
 		rarity,
 		layout,
 		border_color,
@@ -147,15 +148,25 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		?,
 		?,
 		?,
+		?,
+		?,
+		?,
+		?,
+		?,
 		?
 	) ON DUPLICATE KEY UPDATE
 		scryfall_id = ?,
 		oracle_id = ?,
 		tcgplayer_id = ?,
 		card_back_id = ?,
-		cmc = ?,`+
-		"`set` = ?,"+
-		`set_name = ?,
+		cmc = ?,
+		is_white = ?,
+		is_blue = ?,
+		is_black = ?,
+		is_red = ?,
+		is_green = ?,
+		set_code = ?,
+		set_name = ?,
 		rarity = ?,
 		layout = ?,
 		border_color = ?,
@@ -179,6 +190,11 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		card.TCGPlayerID,
 		card.CardBackID,
 		card.CMC,
+		isWhite,
+		isBlue,
+		isBlack,
+		isRed,
+		isGreen,
 		card.Set,
 		card.SetName,
 		card.Rarity,
@@ -203,6 +219,11 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		card.TCGPlayerID,
 		card.CardBackID,
 		card.CMC,
+		isWhite,
+		isBlue,
+		isBlack,
+		isRed,
+		isGreen,
 		card.Set,
 		card.SetName,
 		card.Rarity,
@@ -507,67 +528,7 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 		return 0, err
 	}
 
-	// When using ON DUPLICATE KEY UPDATE, MySQL does allow you to return the ID for the existing row
-	// using LAST_INSERT_ID(id), however this causes the AUTO_INCREMENT value to be increased by 2 per
-	// row every time the batch runs as every row is always updated.
-	if cardFaceID == 0 {
-		err := c.db.Get(&cardFaceID, `SELECT
-			id
-			FROM card_faces f
-			WHERE f.card_id = ?
-			AND f.face_index = ?
-		`,
-			cardID,
-			index,
-		)
-		if err != nil {
-			return 0, err
-		}
-	}
-
 	return cardFaceID, nil
-}
-
-func insertCardFaceColors(tx *sql.Tx, cardFaceID int64, colors []string) error {
-	for _, color := range colors {
-		_, err := tx.Exec(`INSERT IGNORE INTO card_face_colors (
-			card_face_id,
-			color
-		) VALUES (
-			?,
-			?
-		)
-		`,
-			cardFaceID,
-			color,
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func insertCardFaceColorIndicators(tx *sql.Tx, cardFaceID int64, colorIndicators []string) error {
-	for _, colorIndicator := range colorIndicators {
-		_, err := tx.Exec(`INSERT IGNORE INTO card_face_color_indicators (
-			card_face_id,
-			color_indicator
-		) VALUES (
-			?,
-			?
-		)
-		`,
-			cardFaceID,
-			colorIndicator,
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // GenerateFacesJSON calculates card face info per card saves the result as JSON to the card row.
@@ -651,4 +612,14 @@ func (c *cardRepository) GenerateSetsJSON() error {
 	}
 
 	return nil
+}
+
+func contains(list []string, key string) bool {
+	for _, item := range list {
+		if item == key {
+			return true
+		}
+	}
+
+	return false
 }
