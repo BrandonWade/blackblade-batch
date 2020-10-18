@@ -82,7 +82,7 @@ func (b *batchRunner) Run() {
 			}
 		}
 
-		if card.Lang == "en" && card.TypeLine != "Vanguard" {
+		if card.Lang == "en" && card.TypeLine != "Vanguard" && card.Layout != "art_series" && card.Layout != "planar" && card.Layout != "scheme" {
 			cards = append(cards, card)
 		}
 

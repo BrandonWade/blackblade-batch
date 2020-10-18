@@ -43,10 +43,6 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 			return err
 		}
 
-		if cardID == 0 {
-			continue
-		}
-
 		err = insertCardMultiverseIDs(tx, cardID, card.MultiverseIDs)
 		if err != nil {
 			return err
