@@ -180,3 +180,12 @@ type ScryfallCardFace struct {
 	Watermark       string            `json:"watermark"`
 	ArtistID        string            `json:"artist_id"`
 }
+
+// ScryfallRuling represents a scryfall card ruling
+type ScryfallRuling struct {
+	Object      string `json:"object"`
+	OracleID    string `json:"oracle_id"`
+	Source      string `json:"source"`
+	PublishedAt string `json:"published_at"`
+	Comment     string `json:"comment"`
+}

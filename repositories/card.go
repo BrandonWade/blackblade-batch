@@ -14,6 +14,7 @@ type CardRepository interface {
 	UpsertCards(cards []models.ScryfallCard) error
 	GenerateFacesJSON() error
 	GenerateSetsJSON() error
+	InsertRulings(rulings []models.ScryfallRuling) error
 }
 
 type cardRepository struct {
@@ -611,6 +612,60 @@ func (c *cardRepository) GenerateSetsJSON() error {
 	}
 
 	return nil
+}
+
+func (c *cardRepository) InsertRulings(rulings []models.ScryfallRuling) error {
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	for _, ruling := range rulings {
+		_, err := c.insertRuling(tx, ruling)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *cardRepository) insertRuling(tx *sql.Tx, ruling models.ScryfallRuling) (int64, error) {
+	result, err := tx.Exec(`INSERT IGNORE INTO card_rulings (
+		oracle_id,
+		comment_hash,
+		source,
+		published_at,
+		comment
+	) VALUES (
+		?,
+		MD5(?),
+		?,
+		?,
+		?
+	)
+	`,
+		ruling.OracleID,
+		ruling.Comment,
+		ruling.Source,
+		ruling.PublishedAt,
+		ruling.Comment,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	rulingID, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return rulingID, nil
 }
 
 func contains(list []string, key string) bool {

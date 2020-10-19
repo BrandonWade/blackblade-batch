@@ -14,8 +14,8 @@ import (
 
 // ScryfallClient interface for working with a scryfallClient.
 type ScryfallClient interface {
-	GetAllCards() (models.ScryfallBulkData, error)
-	DownloadAllCardData(uri, filepath string) error
+	GetBulkData(dataType string) (models.ScryfallBulkData, error)
+	DownloadBulkData(dataType, uri, filepath string) error
 }
 
 type scryfallClient struct {
@@ -33,9 +33,9 @@ func NewScryfallClient(baseURL string, logger *logrus.Logger, client *scryfall.C
 	}
 }
 
-// GetAllCards returns the all_cards bulk data from the Scryfall API.
-func (s *scryfallClient) GetAllCards() (models.ScryfallBulkData, error) {
-	url := fmt.Sprintf("%s/bulk-data/all-cards", s.baseURL)
+// GetBulkData returns the bulk data of the specified type from the Scryfall API.
+func (s *scryfallClient) GetBulkData(dataType string) (models.ScryfallBulkData, error) {
+	url := fmt.Sprintf("%s/bulk-data/%s", s.baseURL, dataType)
 
 	res, err := http.Get(url)
 	if err != nil {
@@ -43,17 +43,17 @@ func (s *scryfallClient) GetAllCards() (models.ScryfallBulkData, error) {
 	}
 	defer res.Body.Close()
 
-	allCards := models.ScryfallBulkData{}
-	err = json.NewDecoder(res.Body).Decode(&allCards)
+	data := models.ScryfallBulkData{}
+	err = json.NewDecoder(res.Body).Decode(&data)
 	if err != nil {
 		return models.ScryfallBulkData{}, err
 	}
 
-	return allCards, nil
+	return data, nil
 }
 
-// DownloadAllCardData downloads the contents of the all_cards bulk data file from the Scryfall API.
-func (s *scryfallClient) DownloadAllCardData(uri, filepath string) error {
+// DownloadBulkData downloads the contents of the specified bulk data file from the Scryfall API.
+func (s *scryfallClient) DownloadBulkData(dataType, uri, filepath string) error {
 	res, err := http.Get(uri)
 	if err != nil {
 		return err
@@ -71,7 +71,7 @@ func (s *scryfallClient) DownloadAllCardData(uri, filepath string) error {
 		return err
 	}
 
-	s.logger.Printf("Successfully downloaded all-cards bulk data file %s", filepath)
+	s.logger.Printf("Successfully downloaded %s bulk data file %s", dataType, filepath)
 
 	return nil
 }

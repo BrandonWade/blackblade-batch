@@ -11,9 +11,12 @@ import (
 type CardService interface {
 	GetAllCards() (models.ScryfallBulkData, error)
 	DownloadAllCardData(uri, filepath string) error
+	GetRulings() (models.ScryfallBulkData, error)
+	DownloadRulingsData(uri, filepath string) error
 	UpsertCards(cards []models.ScryfallCard) error
 	GenerateFacesJSON() error
 	GenerateSetsJSON() error
+	InsertRulings(rulings []models.ScryfallRuling) error
 }
 
 type cardService struct {
@@ -33,12 +36,22 @@ func NewCardService(logger *logrus.Logger, scryfallClient clients.ScryfallClient
 
 // GetAllCards returns the all_cards bulk data from the Scryfall API.
 func (c *cardService) GetAllCards() (models.ScryfallBulkData, error) {
-	return c.scryfallClient.GetAllCards()
+	return c.scryfallClient.GetBulkData("all-cards")
 }
 
 // DownloadAllCardData downloads the all_cards bulk data file from the scryfall API.
 func (c *cardService) DownloadAllCardData(uri, filepath string) error {
-	return c.scryfallClient.DownloadAllCardData(uri, filepath)
+	return c.scryfallClient.DownloadBulkData("all-cards", uri, filepath)
+}
+
+// GetRulings returns the rulings bulk data from the Scryfall API.
+func (c *cardService) GetRulings() (models.ScryfallBulkData, error) {
+	return c.scryfallClient.GetBulkData("rulings")
+}
+
+// DownloadRulingsData downloads the rulings bulk data file from the scryfall API.
+func (c *cardService) DownloadRulingsData(uri, filepath string) error {
+	return c.scryfallClient.DownloadBulkData("rulings", uri, filepath)
 }
 
 // UpsertCards upserts the provided cards into the database.
@@ -54,4 +67,9 @@ func (c *cardService) GenerateFacesJSON() error {
 // GenerateSetsJSON calculates the set name and images for each card in the database and saves the result.
 func (c *cardService) GenerateSetsJSON() error {
 	return c.cardRepo.GenerateSetsJSON()
+}
+
+// InsertRulings inserts the provided rulings into the database.
+func (c *cardService) InsertRulings(rulings []models.ScryfallRuling) error {
+	return c.cardRepo.InsertRulings(rulings)
 }
