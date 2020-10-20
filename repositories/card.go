@@ -576,14 +576,14 @@ func (c *cardRepository) GenerateSetsJSON() error {
 		a.oracle_id,
 		JSON_ARRAYAGG(JSON_OBJECT(
 			'set_name', a.set_name,
-			'price', a.usd,
+			'price', a.price,
 			'card_faces', a.faces_json
 		)) sets
 		FROM (
 			SELECT
 			c.oracle_id,
 			c.set_name,
-			p.usd,
+			IF(p.usd != "", p.usd, p.usd_foil) price,
 			c.faces_json
 			FROM cards c
 			INNER JOIN card_faces f ON c.id = f.card_id
