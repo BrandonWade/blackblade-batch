@@ -14,6 +14,7 @@ type CardRepository interface {
 	UpsertCards(cards []models.ScryfallCard) error
 	GenerateFacesJSON() error
 	GenerateSetsJSON() error
+	GenerateRulingsJSON() error
 	InsertRulings(rulings []models.ScryfallRuling) error
 }
 
@@ -666,6 +667,56 @@ func (c *cardRepository) insertRuling(tx *sql.Tx, ruling models.ScryfallRuling) 
 	}
 
 	return rulingID, nil
+}
+
+// GenerateRulingsJSON aggregates the rulings for each distinct card in the database and saves the result.
+func (c *cardRepository) GenerateRulingsJSON() error {
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`TRUNCATE TABLE card_rulings_list`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`INSERT INTO card_rulings_list (oracle_id, rulings_json)
+		SELECT
+		a.oracle_id,
+		JSON_ARRAYAGG(JSON_OBJECT(
+			'published_at', a.published_at,
+			'comment', a.comment
+		)) rulings
+		FROM (
+			SELECT
+			r.oracle_id,
+			r.published_at,
+			r.comment
+			FROM card_rulings r
+			ORDER BY r.oracle_id, r.published_at
+		) a
+		GROUP BY a.oracle_id
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`UPDATE cards c
+		INNER JOIN card_rulings_list r ON r.oracle_id = c.oracle_id
+		SET c.card_rulings_list_id = r.id
+		WHERE c.oracle_id = r.oracle_id
+	`)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func contains(list []string, key string) bool {

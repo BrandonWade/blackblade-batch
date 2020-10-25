@@ -17,6 +17,7 @@ type CardService interface {
 	GenerateFacesJSON() error
 	GenerateSetsJSON() error
 	InsertRulings(rulings []models.ScryfallRuling) error
+	GenerateRulingsJSON() error
 }
 
 type cardService struct {
@@ -64,9 +65,14 @@ func (c *cardService) GenerateFacesJSON() error {
 	return c.cardRepo.GenerateFacesJSON()
 }
 
-// GenerateSetsJSON calculates the set name and images for each card in the database and saves the result.
+// GenerateSetsJSON aggregates the faces JSON for distinct card in the database and saves the result.
 func (c *cardService) GenerateSetsJSON() error {
 	return c.cardRepo.GenerateSetsJSON()
+}
+
+// GenerateRulingsJSON aggregates the rulings for each distinct card in the database and saves the result.
+func (c *cardService) GenerateRulingsJSON() error {
+	return c.cardRepo.GenerateRulingsJSON()
 }
 
 // InsertRulings inserts the provided rulings into the database.

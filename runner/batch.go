@@ -223,5 +223,12 @@ func (b *batchRunner) processRulings() error {
 		return err
 	}
 
+	b.logger.Println("Calculating card_rulings_list table...")
+	err = b.cardService.GenerateRulingsJSON()
+	if err != nil {
+		b.logger.Errorf("error generating card_rulings_list table: %s", err.Error())
+		return err
+	}
+
 	return nil
 }
