@@ -9,8 +9,8 @@ import (
 
 // CardService interface for working with a cardService
 type CardService interface {
-	GetAllCards() (models.ScryfallBulkData, error)
-	DownloadAllCardData(uri, filepath string) error
+	GetDefaultCards() (models.ScryfallBulkData, error)
+	DownloadDefaultCardData(uri, filepath string) error
 	GetRulings() (models.ScryfallBulkData, error)
 	DownloadRulingsData(uri, filepath string) error
 	UpsertCards(cards []models.ScryfallCard) error
@@ -35,14 +35,14 @@ func NewCardService(logger *logrus.Logger, scryfallClient clients.ScryfallClient
 	}
 }
 
-// GetAllCards returns the all_cards bulk data from the Scryfall API.
-func (c *cardService) GetAllCards() (models.ScryfallBulkData, error) {
-	return c.scryfallClient.GetBulkData("all-cards")
+// GetDefaultCards returns the default_cards bulk data from the Scryfall API.
+func (c *cardService) GetDefaultCards() (models.ScryfallBulkData, error) {
+	return c.scryfallClient.GetBulkData("default-cards")
 }
 
-// DownloadAllCardData downloads the all_cards bulk data file from the scryfall API.
-func (c *cardService) DownloadAllCardData(uri, filepath string) error {
-	return c.scryfallClient.DownloadBulkData("all-cards", uri, filepath)
+// DownloadDefaultCardData downloads the default_cards bulk data file from the scryfall API.
+func (c *cardService) DownloadDefaultCardData(uri, filepath string) error {
+	return c.scryfallClient.DownloadBulkData("default-cards", uri, filepath)
 }
 
 // GetRulings returns the rulings bulk data from the Scryfall API.

@@ -50,30 +50,30 @@ func (b *batchRunner) Run() {
 }
 
 func (b *batchRunner) processCards() error {
-	allCards, err := b.cardService.GetAllCards()
+	defaultCards, err := b.cardService.GetDefaultCards()
 	if err != nil {
-		b.logger.Errorf("error fetching all cards from api: %s", err.Error())
+		b.logger.Errorf("error fetching default cards from api: %s", err.Error())
 		return err
 	}
 
-	if (allCards == models.ScryfallBulkData{}) {
-		err = errors.New("all cards not found")
+	if (defaultCards == models.ScryfallBulkData{}) {
+		err = errors.New("default cards not found")
 		b.logger.Errorf(err.Error())
 		return err
 	}
 
-	filepath := fmt.Sprintf("allcards-%v.json", int32(time.Now().Unix()))
-	err = b.cardService.DownloadAllCardData(allCards.DownloadURI, filepath)
+	filepath := fmt.Sprintf("defaultcards-%v.json", int32(time.Now().Unix()))
+	err = b.cardService.DownloadDefaultCardData(defaultCards.DownloadURI, filepath)
 	if err != nil {
-		b.logger.Fatalf("error downloading all cards data from api: %s", err.Error())
+		b.logger.Fatalf("error downloading default cards data from api: %s", err.Error())
 		return err
 	}
 
-	b.logger.Println("Processing all-cards bulk data file...")
+	b.logger.Println("Processing default-cards bulk data file...")
 
 	file, err := os.Open(filepath)
 	if err != nil {
-		b.logger.Fatalf("error opening all cards data file: %s", err.Error())
+		b.logger.Fatalf("error opening default cards data file: %s", err.Error())
 		return err
 	}
 
