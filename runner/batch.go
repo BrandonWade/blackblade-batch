@@ -50,6 +50,7 @@ func (b *batchRunner) Run() {
 }
 
 func (b *batchRunner) processCards() error {
+	b.logger.Println("Downloading default-cards bulk data file...")
 	defaultCards, err := b.cardService.GetDefaultCards()
 	if err != nil {
 		b.logger.Errorf("error fetching default cards from api: %s", err.Error())
@@ -147,6 +148,7 @@ func (b *batchRunner) processCards() error {
 
 // When go gets generics, it might be possible to de-dupe a lot of this code...
 func (b *batchRunner) processRulings() error {
+	b.logger.Println("Downloading rulings bulk data file...")
 	rulingsData, err := b.cardService.GetRulings()
 	if err != nil {
 		b.logger.Errorf("error fetching card rulings from api: %s", err.Error())
