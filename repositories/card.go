@@ -685,11 +685,13 @@ func (c *cardRepository) GenerateRulingsJSON() error {
 		SELECT
 		a.oracle_id,
 		JSON_ARRAYAGG(JSON_OBJECT(
+			'id', a.id,
 			'published_at', a.published_at,
 			'comment', a.comment
 		)) rulings
 		FROM (
 			SELECT
+			r.id,
 			r.oracle_id,
 			r.published_at,
 			r.comment
