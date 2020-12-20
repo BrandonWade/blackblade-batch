@@ -86,23 +86,12 @@ func (c *cardRepository) setLayout(card *models.ScryfallCard) {
 }
 
 func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64, error) {
-	isWhite := contains(card.Colors, "W")
-	isBlue := contains(card.Colors, "U")
-	isBlack := contains(card.Colors, "B")
-	isRed := contains(card.Colors, "R")
-	isGreen := contains(card.Colors, "G")
-
 	result, err := tx.Exec(`INSERT INTO cards (
 		scryfall_id,
 		oracle_id,
 		tcgplayer_id,
 		card_back_id,
 		cmc,
-		is_white,
-		is_blue,
-		is_black,
-		is_red,
-		is_green,
 		set_code,
 		set_name,
 		rarity,
@@ -146,11 +135,6 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		?,
 		?,
 		?,
-		?,
-		?,
-		?,
-		?,
-		?,
 		?
 	) ON DUPLICATE KEY UPDATE
 		scryfall_id = ?,
@@ -158,11 +142,6 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		tcgplayer_id = ?,
 		card_back_id = ?,
 		cmc = ?,
-		is_white = ?,
-		is_blue = ?,
-		is_black = ?,
-		is_red = ?,
-		is_green = ?,
 		set_code = ?,
 		set_name = ?,
 		rarity = ?,
@@ -188,11 +167,6 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		card.TCGPlayerID,
 		card.CardBackID,
 		card.CMC,
-		isWhite,
-		isBlue,
-		isBlack,
-		isRed,
-		isGreen,
 		card.Set,
 		card.SetName,
 		card.Rarity,
@@ -217,11 +191,6 @@ func (c *cardRepository) upsertCard(tx *sql.Tx, card models.ScryfallCard) (int64
 		card.TCGPlayerID,
 		card.CardBackID,
 		card.CMC,
-		isWhite,
-		isBlue,
-		isBlack,
-		isRed,
-		isGreen,
 		card.Set,
 		card.SetName,
 		card.Rarity,
@@ -416,9 +385,20 @@ func (c *cardRepository) getDerivedType(cardType string) string {
 }
 
 func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, cardFace models.ScryfallCardFace) (int64, error) {
+	isWhite := contains(cardFace.Colors, "W")
+	isBlue := contains(cardFace.Colors, "U")
+	isBlack := contains(cardFace.Colors, "B")
+	isRed := contains(cardFace.Colors, "R")
+	isGreen := contains(cardFace.Colors, "G")
+
 	result, err := tx.Exec(`INSERT INTO card_faces (
 		card_id,
 		face_index,
+		is_white,
+		is_blue,
+		is_black,
+		is_red,
+		is_green,
 		artist,
 		flavor_text,
 		illustration_id,
@@ -457,8 +437,18 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 		?,
 		?,
 		?,
+		?,
+		?,
+		?,
+		?,
+		?,
 		?
 	) ON DUPLICATE KEY UPDATE
+		is_white = ?,
+		is_blue = ?,
+		is_black = ?,
+		is_red = ?,
+		is_green = ?,
 		artist = ?,
 		flavor_text = ?,
 		illustration_id = ?,
@@ -480,6 +470,11 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 	`,
 		cardID,
 		index,
+		isWhite,
+		isBlue,
+		isBlack,
+		isRed,
+		isGreen,
 		cardFace.Artist,
 		cardFace.FlavorText,
 		cardFace.IllustrationID,
@@ -498,6 +493,11 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 		cardFace.TypeLine,
 		cardFace.DerivedType,
 		cardFace.Watermark,
+		isWhite,
+		isBlue,
+		isBlack,
+		isRed,
+		isGreen,
 		cardFace.Artist,
 		cardFace.FlavorText,
 		cardFace.IllustrationID,
