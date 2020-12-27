@@ -100,7 +100,7 @@ func (b *batchRunner) processCards() error {
 			}
 		}
 
-		if card.Lang == "en" && card.TypeLine != "Vanguard" && card.Layout != "art_series" && card.Layout != "planar" && card.Layout != "scheme" {
+		if card.Lang == "en" && card.TypeLine != "Vanguard" && card.Layout != "art_series" && card.Layout != "planar" && card.Layout != "scheme" && card.SetType != "memorabilia" {
 			cards = append(cards, card)
 		}
 
