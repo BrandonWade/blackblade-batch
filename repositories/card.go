@@ -12,8 +12,9 @@ import (
 // CardRepository interface for working with a cardRepository
 type CardRepository interface {
 	UpsertCards(cards []models.ScryfallCard) error
-	GenerateFacesJSON() error
-	GenerateSetsJSON() error
+	GenerateCardFacesJSON() error
+	GenerateCardSetsJSON() error
+	GenerateSets() error
 	GenerateRulingsJSON() error
 	InsertRulings(rulings []models.ScryfallRuling) error
 }
@@ -529,8 +530,8 @@ func (c *cardRepository) upsertCardFace(tx *sql.Tx, cardID int64, index int, car
 	return cardFaceID, nil
 }
 
-// GenerateFacesJSON calculates card face info per card saves the result as JSON to the card row.
-func (c *cardRepository) GenerateFacesJSON() error {
+// GenerateCardFacesJSON calculates card face info per card saves the result as JSON to the card row.
+func (c *cardRepository) GenerateCardFacesJSON() error {
 	_, err := c.db.Exec(`UPDATE cards c
 		INNER JOIN (
 			SELECT
@@ -560,8 +561,8 @@ func (c *cardRepository) GenerateFacesJSON() error {
 	return err
 }
 
-// GenerateSetsJSON calculates card set info per card saves the result as JSON to the card row.
-func (c *cardRepository) GenerateSetsJSON() error {
+// GenerateCardSetsJSON calculates card set info per card saves the result as JSON to the card row.
+func (c *cardRepository) GenerateCardSetsJSON() error {
 	tx, err := c.db.Begin()
 	if err != nil {
 		return err
@@ -603,6 +604,36 @@ func (c *cardRepository) GenerateSetsJSON() error {
 		INNER JOIN card_sets_list s ON s.oracle_id = c.oracle_id
 		SET c.card_sets_list_id = s.id
 		WHERE c.oracle_id = s.oracle_id
+	`)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *cardRepository) GenerateSets() error {
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`TRUNCATE TABLE sets`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`INSERT INTO sets (set_code, set_name)
+		SELECT DISTINCT
+		c.set_code,
+		c.set_name
+		FROM cards c
+		ORDER BY c.set_name
 	`)
 	if err != nil {
 		return err

@@ -14,8 +14,9 @@ type CardService interface {
 	GetRulings() (models.ScryfallBulkData, error)
 	DownloadRulingsData(uri, filepath string) error
 	UpsertCards(cards []models.ScryfallCard) error
-	GenerateFacesJSON() error
-	GenerateSetsJSON() error
+	GenerateCardFacesJSON() error
+	GenerateCardSetsJSON() error
+	GenerateSets() error
 	InsertRulings(rulings []models.ScryfallRuling) error
 	GenerateRulingsJSON() error
 }
@@ -60,14 +61,19 @@ func (c *cardService) UpsertCards(cards []models.ScryfallCard) error {
 	return c.cardRepo.UpsertCards(cards)
 }
 
-// GenerateFacesJSON calculates the set name and images for each card in the database and saves the result.
-func (c *cardService) GenerateFacesJSON() error {
-	return c.cardRepo.GenerateFacesJSON()
+// GenerateCardFacesJSON calculates the set name and images for each card in the database and saves the result.
+func (c *cardService) GenerateCardFacesJSON() error {
+	return c.cardRepo.GenerateCardFacesJSON()
 }
 
-// GenerateSetsJSON aggregates the faces JSON for distinct card in the database and saves the result.
-func (c *cardService) GenerateSetsJSON() error {
-	return c.cardRepo.GenerateSetsJSON()
+// GenerateCardSetsJSON aggregates the faces JSON for distinct card in the database and saves the result.
+func (c *cardService) GenerateCardSetsJSON() error {
+	return c.cardRepo.GenerateCardSetsJSON()
+}
+
+// GenerateSets calculates a list of unique set names and codes in the database and saves the result.
+func (c *cardService) GenerateSets() error {
+	return c.cardRepo.GenerateSets()
 }
 
 // GenerateRulingsJSON aggregates the rulings for each distinct card in the database and saves the result.

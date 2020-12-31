@@ -130,16 +130,23 @@ func (b *batchRunner) processCards() error {
 	}
 
 	b.logger.Println("Calculating cards.faces_json column values...")
-	err = b.cardService.GenerateFacesJSON()
+	err = b.cardService.GenerateCardFacesJSON()
 	if err != nil {
 		b.logger.Errorf("error generating cards.faces_json values: %s", err.Error())
 		return err
 	}
 
 	b.logger.Println("Calculating card_sets_list table...")
-	err = b.cardService.GenerateSetsJSON()
+	err = b.cardService.GenerateCardSetsJSON()
 	if err != nil {
 		b.logger.Errorf("error generating card_sets_list table: %s", err.Error())
+		return err
+	}
+
+	b.logger.Println("Calculating sets table...")
+	err = b.cardService.GenerateSets()
+	if err != nil {
+		b.logger.Errorf("error generating sets table: %s", err.Error())
 		return err
 	}
 
