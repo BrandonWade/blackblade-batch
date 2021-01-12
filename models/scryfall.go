@@ -121,6 +121,8 @@ type ScryfallLegalities struct {
 	Brawl     string `json:"brawl"`
 	Duel      string `json:"duel"`
 	Oldschool string `json:"oldschool"`
+	Gladiator string `json:"gladiator"`
+	Premodern string `json:"premodern"`
 }
 
 // ScryfallPrices represents a scryfall card's prices

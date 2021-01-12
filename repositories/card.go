@@ -15,6 +15,7 @@ type CardRepository interface {
 	GenerateCardFacesJSON() error
 	GenerateCardSetsJSON() error
 	GenerateSets() error
+	InsertTypes(types []string) error
 	GenerateRulingsJSON() error
 	InsertRulings(rulings []models.ScryfallRuling) error
 }
@@ -637,6 +638,31 @@ func (c *cardRepository) GenerateSets() error {
 	`)
 	if err != nil {
 		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *cardRepository) InsertTypes(types []string) error {
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	for _, cardType := range types {
+		_, err = tx.Exec(`INSERT IGNORE INTO types (type)
+			VALUES (?)
+		`,
+			cardType,
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = tx.Commit()

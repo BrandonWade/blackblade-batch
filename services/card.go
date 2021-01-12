@@ -1,6 +1,9 @@
 package services
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/BrandonWade/blackblade-batch/clients"
 	"github.com/BrandonWade/blackblade-batch/models"
 	"github.com/BrandonWade/blackblade-batch/repositories"
@@ -14,6 +17,7 @@ type CardService interface {
 	GetRulings() (models.ScryfallBulkData, error)
 	DownloadRulingsData(uri, filepath string) error
 	UpsertCards(cards []models.ScryfallCard) error
+	GenerateTypes(cards []models.ScryfallCard) error
 	GenerateCardFacesJSON() error
 	GenerateCardSetsJSON() error
 	GenerateSets() error
@@ -58,7 +62,28 @@ func (c *cardService) DownloadRulingsData(uri, filepath string) error {
 
 // UpsertCards upserts the provided cards into the database.
 func (c *cardService) UpsertCards(cards []models.ScryfallCard) error {
+	err := c.GenerateTypes(cards)
+	if err != nil {
+		return err
+	}
+
 	return c.cardRepo.UpsertCards(cards)
+}
+
+// GenerateTypes gets the list of card types from the provided cards and inserts them into the database.
+func (c *cardService) GenerateTypes(cards []models.ScryfallCard) error {
+	remove := regexp.MustCompile("(\\s—|//|,|and/or)")
+	spaces := regexp.MustCompile("\\s+")
+
+	types := []string{}
+	for _, card := range cards {
+		typeLine := strings.Title(card.TypeLine)
+		typeStr := remove.ReplaceAllString(typeLine, "")
+		tokens := spaces.Split(typeStr, -1)
+		types = append(types, tokens...)
+	}
+
+	return c.cardRepo.InsertTypes(types)
 }
 
 // GenerateCardFacesJSON calculates the set name and images for each card in the database and saves the result.
