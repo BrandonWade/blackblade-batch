@@ -77,8 +77,8 @@ func (c *cardService) GenerateTypes(cards []models.ScryfallCard) error {
 
 	types := []string{}
 	for _, card := range cards {
-		typeLine := strings.Title(card.TypeLine)
-		typeStr := remove.ReplaceAllString(typeLine, "")
+		typeLine := remove.ReplaceAllString(card.TypeLine, "")
+		typeStr := strings.Title(typeLine)
 		tokens := spaces.Split(typeStr, -1)
 		types = append(types, tokens...)
 	}
