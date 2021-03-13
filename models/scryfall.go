@@ -34,6 +34,7 @@ type ScryfallCard struct {
 	ScryfallURI     string                `json:"scryfall_uri"`
 	Layout          string                `json:"layout"`
 	HighresImage    bool                  `json:"highres_image"`
+	ImageStatus     string                `json:"image_status"`
 	ImageURIs       ScryfallImageURIs     `json:"image_uris"`
 	ManaCost        string                `json:"mana_cost"`
 	CMC             float64               `json:"cmc"`
