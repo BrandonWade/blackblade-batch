@@ -79,9 +79,9 @@ func (b *batchRunner) processCards() error {
 	}
 
 	dec := json.NewDecoder(file)
-	dec.DisallowUnknownFields()
+	// dec.DisallowUnknownFields()
 
-	// read open bracket
+	// read opening bracket
 	_, err = dec.Token()
 	if err != nil {
 		b.logger.Errorf("error parsing card data: %s", err.Error())
@@ -184,9 +184,9 @@ func (b *batchRunner) processRulings() error {
 	}
 
 	dec := json.NewDecoder(file)
-	dec.DisallowUnknownFields()
+	// dec.DisallowUnknownFields()
 
-	// read open bracket
+	// read opening bracket
 	_, err = dec.Token()
 	if err != nil {
 		b.logger.Errorf("error parsing ruling data: %s", err.Error())
