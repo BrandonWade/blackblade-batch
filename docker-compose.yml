@@ -13,7 +13,6 @@ services:
             - DB_DATABASE=blackblade
             - DB_HOST=blackblade-db
             - DB_PORT=3306
-
 networks:
     default:
         external:

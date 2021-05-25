@@ -1,5 +1,16 @@
 version: 2.1
 
+workflows:
+    build_and_deploy:
+        jobs:
+            - build_and_deploy:
+                  context:
+                      - blackblade
+                  filters:
+                      branches:
+                          only:
+                              - master
+
 jobs:
     build_and_deploy:
         docker:
@@ -30,12 +41,3 @@ jobs:
                   name: 'Update pods with the latest image versions'
                   command: |
                       kubectl set image cronjobs/batch-cronjob blackblade-batch=brandonwade/blackblade-batch:$CIRCLE_SHA1
-workflows:
-    version: 2.1
-    build_and_deploy:
-        jobs:
-            - build_and_deploy:
-                  filters:
-                      branches:
-                          only:
-                              - master
