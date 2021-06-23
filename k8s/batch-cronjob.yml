@@ -37,5 +37,3 @@ spec:
                                         name: dbport
                                         key: DB_PORT
                     restartPolicy: OnFailure
-                    imagePullSecrets:
-                        - name: regcred
