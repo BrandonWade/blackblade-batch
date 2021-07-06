@@ -4,6 +4,7 @@ metadata:
     name: batch-cronjob
 spec:
     schedule: '0 0 * * 6'
+    successfulJobsHistoryLimit: 0
     jobTemplate:
         spec:
             template:
