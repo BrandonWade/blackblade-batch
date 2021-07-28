@@ -589,7 +589,9 @@ func (c *cardRepository) GenerateCardSetsJSON() error {
 		a.oracle_id,
 		JSON_ARRAYAGG(JSON_OBJECT(
 			'card_id', a.card_id,
+			'name', a.name,
 			'set_name', a.set_name,
+			'set_code', a.set_code,
 			'price', a.price,
 			'card_faces', a.faces_json
 		)) sets
@@ -597,7 +599,9 @@ func (c *cardRepository) GenerateCardSetsJSON() error {
 			SELECT
 			c.id card_id,
 			c.oracle_id,
+			c.name,
 			c.set_name,
+			c.set_code,
 			IF(p.usd != "", p.usd, p.usd_foil) price,
 			c.faces_json
 			FROM cards c
