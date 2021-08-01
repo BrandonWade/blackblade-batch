@@ -593,7 +593,7 @@ func (c *cardRepository) GenerateCardSetsJSON() error {
 			'set_name', a.set_name,
 			'set_code', a.set_code,
 			'price', a.price,
-			'card_faces', a.faces_json
+			'faces_json', a.faces_json
 		)) sets
 		FROM (
 			SELECT
