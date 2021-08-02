@@ -593,7 +593,8 @@ func (c *cardRepository) GenerateCardSetsJSON() error {
 			'set_name', a.set_name,
 			'set_code', a.set_code,
 			'price', a.price,
-			'faces_json', a.faces_json
+			'faces_json', a.faces_json,
+			'layout', a.layout
 		)) sets
 		FROM (
 			SELECT
@@ -603,7 +604,8 @@ func (c *cardRepository) GenerateCardSetsJSON() error {
 			c.set_name,
 			c.set_code,
 			IF(p.usd != "", p.usd, p.usd_foil) price,
-			c.faces_json
+			c.faces_json,
+			c.layout
 			FROM cards c
 			INNER JOIN card_prices p ON p.card_id = c.id
 			GROUP BY c.id
