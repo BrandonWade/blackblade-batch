@@ -379,6 +379,8 @@ func (c *cardRepository) getDerivedType(cardType string) string {
 
 	if strings.Contains(t, "creature") {
 		return "creature"
+	} else if strings.Contains(t, "land") {
+		return "land"
 	} else if strings.Contains(t, "artifact") {
 		return "artifact"
 	} else if strings.Contains(t, "enchantment") {
@@ -389,8 +391,6 @@ func (c *cardRepository) getDerivedType(cardType string) string {
 		return "sorcery"
 	} else if strings.Contains(t, "planeswalker") {
 		return "planeswalker"
-	} else if strings.Contains(t, "land") {
-		return "land"
 	}
 
 	return ""
