@@ -37,6 +37,10 @@ func NewCardRepository(logger *logrus.Logger, db *sqlx.DB) CardRepository {
 func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 	tx, err := c.db.Begin()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -44,21 +48,37 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 		c.setLayout(&card)
 		cardID, err := c.upsertCard(tx, card)
 		if err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				return rollbackErr
+			}
+
 			return err
 		}
 
 		err = insertCardMultiverseIDs(tx, cardID, card.MultiverseIDs)
 		if err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				return rollbackErr
+			}
+
 			return err
 		}
 
 		err = insertCardFrameEffects(tx, cardID, card.FrameEffects)
 		if err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				return rollbackErr
+			}
+
 			return err
 		}
 
 		err = upsertCardPrices(tx, cardID, card.Prices)
 		if err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				return rollbackErr
+			}
+
 			return err
 		}
 
@@ -66,6 +86,10 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 		for i, cardFace := range cardFaces {
 			_, err = c.upsertCardFace(tx, cardID, i, card.Colors, cardFace)
 			if err != nil {
+				if rollbackErr := tx.Rollback(); rollbackErr != nil {
+					return rollbackErr
+				}
+
 				return err
 			}
 		}
@@ -73,6 +97,10 @@ func (c *cardRepository) UpsertCards(cards []models.ScryfallCard) error {
 
 	err = tx.Commit()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -581,11 +609,19 @@ func (c *cardRepository) GenerateCardFacesJSON() error {
 func (c *cardRepository) GenerateCardSetsJSON() error {
 	tx, err := c.db.Begin()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
 	_, err = tx.Exec(`TRUNCATE TABLE card_sets_list`)
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -619,6 +655,10 @@ func (c *cardRepository) GenerateCardSetsJSON() error {
 		GROUP BY a.oracle_id
 	`)
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -628,11 +668,19 @@ func (c *cardRepository) GenerateCardSetsJSON() error {
 		WHERE c.oracle_id = s.oracle_id
 	`)
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
 	err = tx.Commit()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -642,11 +690,19 @@ func (c *cardRepository) GenerateCardSetsJSON() error {
 func (c *cardRepository) GenerateSets() error {
 	tx, err := c.db.Begin()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
 	_, err = tx.Exec(`TRUNCATE TABLE sets`)
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -658,11 +714,19 @@ func (c *cardRepository) GenerateSets() error {
 		ORDER BY c.set_name
 	`)
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
 	err = tx.Commit()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -672,6 +736,10 @@ func (c *cardRepository) GenerateSets() error {
 func (c *cardRepository) InsertTypes(types []string) error {
 	tx, err := c.db.Begin()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -682,12 +750,20 @@ func (c *cardRepository) InsertTypes(types []string) error {
 			cardType,
 		)
 		if err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				return rollbackErr
+			}
+
 			return err
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -697,18 +773,30 @@ func (c *cardRepository) InsertTypes(types []string) error {
 func (c *cardRepository) InsertRulings(rulings []models.ScryfallRuling) error {
 	tx, err := c.db.Begin()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
 	for _, ruling := range rulings {
 		_, err := c.insertRuling(tx, ruling)
 		if err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				return rollbackErr
+			}
+
 			return err
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -752,11 +840,19 @@ func (c *cardRepository) insertRuling(tx *sql.Tx, ruling models.ScryfallRuling) 
 func (c *cardRepository) GenerateRulingsJSON() error {
 	tx, err := c.db.Begin()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
 	_, err = tx.Exec(`TRUNCATE TABLE card_rulings_list`)
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -780,6 +876,10 @@ func (c *cardRepository) GenerateRulingsJSON() error {
 		GROUP BY a.oracle_id
 	`)
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -789,11 +889,19 @@ func (c *cardRepository) GenerateRulingsJSON() error {
 		WHERE c.oracle_id = r.oracle_id
 	`)
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
 	err = tx.Commit()
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
