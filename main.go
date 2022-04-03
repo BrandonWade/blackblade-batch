@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	scryfall "github.com/BlueMonday/go-scryfall"
 	"github.com/BrandonWade/blackblade-batch/clients"
@@ -43,6 +44,8 @@ func init() {
 	if err != nil {
 		log.Fatalf("error creating scryfall client: %s\n", err.Error())
 	}
+
+	db.SetConnMaxLifetime(time.Second)
 
 	logger = logrus.New()
 }
