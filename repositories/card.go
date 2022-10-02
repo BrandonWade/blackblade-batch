@@ -662,11 +662,7 @@ func (c *cardRepository) GenerateCardSetsJSON() error {
 		return err
 	}
 
-	_, err = tx.Exec(`UPDATE cards c
-		INNER JOIN card_sets_list s ON s.oracle_id = c.oracle_id
-		SET c.card_sets_list_id = s.id
-		WHERE c.oracle_id = s.oracle_id
-	`)
+	err = tx.Commit()
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return rollbackErr
@@ -675,12 +671,12 @@ func (c *cardRepository) GenerateCardSetsJSON() error {
 		return err
 	}
 
-	err = tx.Commit()
+	_, err = c.db.Exec(`UPDATE cards c
+		INNER JOIN card_sets_list s ON s.oracle_id = c.oracle_id
+		SET c.card_sets_list_id = s.id
+		WHERE c.oracle_id = s.oracle_id
+	`)
 	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return rollbackErr
-		}
-
 		return err
 	}
 
