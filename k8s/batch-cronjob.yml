@@ -12,6 +12,13 @@ spec:
                     containers:
                         - name: blackblade-batch
                           image: brandonwade/blackblade-batch:latest
+                          resources:
+                              requests:
+                                  memory: '300Mi'
+                                  cpu: '150m'
+                              limits:
+                                  memory: '650Mi'
+                                  cpu: '500m'
                           env:
                               - name: BASE_SCRYFALL_URL
                                 value: https://api.scryfall.com
