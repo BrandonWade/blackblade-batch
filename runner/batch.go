@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/BrandonWade/blackblade-batch/models"
@@ -100,7 +101,16 @@ func (b *batchRunner) processCards() error {
 			}
 		}
 
-		if card.Lang == "en" && card.TypeLine != "Vanguard" && card.Layout != "art_series" && card.Layout != "planar" && card.Layout != "scheme" && card.SetType != "memorabilia" && !card.Digital {
+		validPrint := card.Lang == "en" && !card.Digital
+		validCardType := card.TypeLine != "Vanguard" && card.Layout != "art_series" && card.Layout != "planar" && card.Layout != "scheme"
+		validSetType := card.SetType != "memorabilia"
+		validFunny := card.SetType != "funny" || (card.SetType == "funny" && (strings.Contains(card.TypeLine, "Plains") ||
+			strings.Contains(card.TypeLine, "Island") ||
+			strings.Contains(card.TypeLine, "Swamp") ||
+			strings.Contains(card.TypeLine, "Mountain") ||
+			strings.Contains(card.TypeLine, "Forest")))
+
+		if validPrint && validCardType && validSetType && validFunny {
 			cards = append(cards, card)
 		}
 
